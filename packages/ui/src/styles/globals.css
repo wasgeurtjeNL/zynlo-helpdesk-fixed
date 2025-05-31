@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Colors - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    /* Status Colors */
+    --status-new: 217 91% 60%;
+    --status-open: 142 76% 36%;
+    --status-pending: 38 92% 50%;
+    --status-resolved: 173 80% 40%;
+    --status-closed: 215 14% 34%;
+
+    /* Priority Colors */
+    --priority-low: 211 75% 60%;
+    --priority-normal: 142 76% 50%;
+    --priority-high: 25 95% 53%;
+    --priority-urgent: 0 84% 60%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    /* Radius */
+    --radius: 0.5rem;
+
+    /* Typography */
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+
+  [data-theme="dark"] {
+    /* Colors - Dark Mode */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Status Colors - Dark Mode */
+    --status-new: 217 91% 70%;
+    --status-open: 142 76% 46%;
+    --status-pending: 38 92% 60%;
+    --status-resolved: 173 80% 50%;
+    --status-closed: 215 14% 44%;
+
+    /* Priority Colors - Dark Mode */
+    --priority-low: 211 75% 70%;
+    --priority-normal: 142 76% 60%;
+    --priority-high: 25 95% 63%;
+    --priority-urgent: 0 84% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Utility classes for status colors */
+@layer utilities {
+  .status-new {
+    @apply text-[hsl(var(--status-new))];
+  }
+  .status-open {
+    @apply text-[hsl(var(--status-open))];
+  }
+  .status-pending {
+    @apply text-[hsl(var(--status-pending))];
+  }
+  .status-resolved {
+    @apply text-[hsl(var(--status-resolved))];
+  }
+  .status-closed {
+    @apply text-[hsl(var(--status-closed))];
+  }
+  
+  /* Priority utilities */
+  .priority-low {
+    @apply text-[hsl(var(--priority-low))];
+  }
+  .priority-normal {
+    @apply text-[hsl(var(--priority-normal))];
+  }
+  .priority-high {
+    @apply text-[hsl(var(--priority-high))];
+  }
+  .priority-urgent {
+    @apply text-[hsl(var(--priority-urgent))];
+  }
+} 

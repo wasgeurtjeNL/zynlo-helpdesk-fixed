@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Develop Message Abstraction Layer
+# Status: done
+# Dependencies: 4
+# Priority: high
+# Description: Create a unified message interface that normalizes communications from different channels (email, WhatsApp, live chat) into a consistent format for the unified inbox.
+# Details:
+Design IMessage interface with common fields: id, channel, sender, recipient, content, attachments, metadata, timestamp. Create channel-specific adapters that transform native formats to IMessage. Implement message storage with channel-specific data preservation. Build message rendering system that handles rich media and formatting. Create attachment handling system with virus scanning and size limits. Implement message threading logic for conversation continuity.
+
+# Test Strategy:
+Unit test each channel adapter with sample data. Test message normalization preserves all critical information. Validate attachment handling with various file types. Test threading logic maintains conversation context.

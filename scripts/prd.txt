@@ -1,0 +1,305 @@
+<context>
+# Overview  
+Zynlo Helpdesk is a modern, multi-channel customer support platform inspired by Trengo. It consolidates customer communications from various channels (email, WhatsApp, live chat) into a unified inbox, enabling support teams to efficiently manage and respond to customer inquiries. The system provides real-time collaboration, intelligent routing, automation capabilities, and comprehensive analytics to deliver exceptional customer service at scale.
+
+The platform solves the fragmentation problem in customer support where teams struggle to manage conversations across multiple channels, leading to missed messages, delayed responses, and poor customer experience. Zynlo Helpdesk is designed for businesses of all sizes that want to professionalize their customer support operations.
+
+# Core Features  
+
+## Unified Inbox
+- Aggregates all customer conversations from email, WhatsApp, and live chat into a single interface
+- Provides a consistent view of all customer interactions regardless of channel
+- Supports rich media attachments and formatting preservation
+- Real-time message synchronization across all connected agents
+
+## Multi-Channel Integration
+- **Email**: Full email client capabilities with threading, attachments, and rich text
+- **WhatsApp Business**: Direct integration via webhooks for instant messaging
+- **Live Chat**: Embeddable chat widget for websites with customizable styling
+- **Extensible Architecture**: Webhook-based system for adding new channels
+
+## Ticket Management System
+- Automatic ticket creation from incoming messages
+- Smart ticket assignment based on team rules, agent availability, and skills
+- Priority levels (Low, Normal, High, Urgent) with visual indicators
+- Status workflow (New → Open → Pending → Resolved → Closed)
+- Ticket merging for duplicate issues
+- Internal notes and collaboration features
+
+## Team Collaboration
+- Real-time presence indicators showing agent availability
+- Internal comments on tickets invisible to customers
+- @mentions for notifying specific team members
+- Collision detection preventing multiple agents from responding simultaneously
+- Activity feeds showing ticket history and agent actions
+
+## Automation & AI Features
+- AI Journey builder for automated customer interactions
+- Smart routing based on message content and customer history
+- Auto-tagging and categorization of tickets
+- Suggested responses based on historical data
+- SLA automation with escalation rules
+
+## Analytics & Reporting
+- Real-time dashboard with key metrics (response time, resolution time, satisfaction)
+- Agent performance tracking
+- Channel performance comparison
+- Custom report builder for specific KPIs
+- Export capabilities for further analysis
+
+# User Experience  
+
+## User Personas
+
+### Support Agent (Primary User)
+- Needs to efficiently handle high volume of customer inquiries
+- Wants quick access to customer history and context
+- Requires collaboration tools for complex issues
+- Values keyboard shortcuts and productivity features
+
+### Team Lead/Supervisor
+- Monitors team performance and workload distribution
+- Manages agent schedules and availability
+- Reviews quality of responses
+- Handles escalated issues
+
+### Administrator
+- Configures system settings and integrations
+- Manages user permissions and teams
+- Sets up automation rules and workflows
+- Monitors system health and usage
+
+## Key User Flows
+
+### Agent Daily Workflow
+1. Login → Dashboard view of assigned tickets
+2. Click ticket → Full conversation history loads
+3. Type response → Real-time preview
+4. Send → Automatic status update
+5. Apply tags/categories → Move to next ticket
+
+### New Channel Setup
+1. Admin navigates to Integrations
+2. Selects channel type (e.g., WhatsApp)
+3. Follows guided setup with webhook URLs
+4. Tests connection with sample message
+5. Channel appears in unified inbox
+
+### Customer Interaction
+1. Customer sends message via any channel
+2. System creates/updates ticket
+3. Agent receives notification
+4. Agent responds within SLA
+5. Customer receives response in original channel
+
+## UI/UX Considerations
+- Dark/light theme support for reduced eye strain
+- Responsive design for mobile access
+- Keyboard-first navigation for power users
+- Accessibility compliance (WCAG 2.1 AA)
+- Minimal clicks to common actions
+- Persistent filters and view preferences
+</context>
+<PRD>
+# Technical Architecture  
+
+## System Components
+
+### Frontend (Dashboard)
+- Next.js 14+ with App Router for optimal performance
+- React 18 with Server Components
+- Tailwind CSS for consistent styling
+- Radix UI for accessible components
+- Real-time updates via Supabase Realtime
+
+### API Layer (Webhook Server)
+- Express.js server for webhook processing
+- Channel-specific endpoint handlers
+- Message normalization layer
+- Queue system for reliable processing
+- Rate limiting and security middleware
+
+### Database (Supabase)
+- PostgreSQL with Row Level Security
+- Real-time subscriptions for live updates
+- Edge Functions for serverless computing
+- Stored procedures for complex operations
+- Built-in authentication and authorization
+
+### Infrastructure
+- Containerized deployment (Docker)
+- CDN for static assets
+- Horizontal scaling capability
+- Health monitoring endpoints
+- Automated backup systems
+
+## Data Models
+
+### Core Entities
+- **Users**: Agents with roles and permissions
+- **Teams**: Grouping of agents with shared settings
+- **Organizations**: Multi-tenant support
+- **Tickets**: Central unit of work
+- **Conversations**: Channel-specific message threads
+- **Messages**: Individual communications
+- **Attachments**: Media and documents
+- **Tags**: Categorization system
+- **Automations**: Rule-based actions
+
+### Integration Points
+- Webhook endpoints for each channel
+- REST API for third-party integrations
+- WebSocket connections for real-time updates
+- OAuth2 for secure authentication
+- Event system for extensibility
+
+# Development Roadmap  
+
+## Phase 1: Foundation (MVP)
+### Core Infrastructure
+- Set up monorepo with Turborepo
+- Initialize Supabase with authentication
+- Create base UI component library
+- Implement basic routing and layouts
+
+### Basic Ticket System
+- Ticket creation and listing
+- Simple assignment to agents
+- Status management
+- Basic search functionality
+
+### Email Channel
+- Email parsing and storage
+- Send email functionality
+- Thread management
+- Attachment handling
+
+### Agent Experience
+- Login/logout with Supabase Auth
+- Personal ticket queue
+- Response editor
+- Basic notifications
+
+## Phase 2: Multi-Channel Support
+### WhatsApp Integration
+- Webhook receiver implementation
+- Message format normalization
+- Media handling
+- Delivery status tracking
+
+### Live Chat Widget
+- Embeddable JavaScript widget
+- WebSocket connection
+- Visitor identification
+- Offline message handling
+
+### Unified Inbox
+- Channel aggregation view
+- Consistent message interface
+- Channel indicators
+- Quick channel switching
+
+## Phase 3: Collaboration & Intelligence
+### Team Features
+- Real-time presence
+- Internal comments
+- Mention system
+- Collision detection
+
+### Automation Engine
+- Rule builder interface
+- Trigger system
+- Action library
+- Testing sandbox
+
+### AI Capabilities
+- Response suggestions
+- Auto-categorization
+- Sentiment analysis
+- Smart routing
+
+## Phase 4: Scale & Polish
+### Performance Optimization
+- Query optimization
+- Caching strategies
+- Lazy loading
+- Bundle optimization
+
+### Advanced Features
+- SLA management
+- Escalation workflows
+- Customer satisfaction surveys
+- Advanced analytics
+
+### Enterprise Features
+- SSO integration
+- Advanced permissions
+- Audit logging
+- API rate limiting
+
+# Logical Dependency Chain
+
+## Foundation First
+1. **Authentication & User System**: Everything depends on knowing who users are
+2. **Database Schema**: Core data structures must be solid before building features
+3. **Basic UI Framework**: Consistent component library prevents rework
+4. **Ticket CRUD**: Fundamental operations before advanced features
+
+## Channel Development
+1. **Message Abstraction Layer**: Define common interface before implementing channels
+2. **Email First**: Most familiar channel, good for testing patterns
+3. **Webhook Infrastructure**: Required for WhatsApp and future channels
+4. **Real-time Updates**: Essential for chat and collaboration features
+
+## Feature Progression
+1. **Individual Agent Features**: Get single-user experience right first
+2. **Team Collaboration**: Build on solid single-user foundation
+3. **Automation**: Requires stable manual processes to automate
+4. **Analytics**: Needs data history from actual usage
+
+## Scalability Path
+1. **Vertical Scaling**: Optimize single-instance performance first
+2. **Horizontal Scaling**: Add distributed capabilities when needed
+3. **Enterprise Features**: Build after core platform is stable
+4. **API Ecosystem**: Open up after internal APIs are proven
+
+# Risks and Mitigations  
+
+## Technical Challenges
+- **Real-time Synchronization**: Mitigate with Supabase Realtime and proper conflict resolution
+- **Message Delivery Reliability**: Implement queue system with retry logic
+- **Performance at Scale**: Design with pagination and lazy loading from start
+- **Third-party API Changes**: Abstract integrations behind adapter pattern
+
+## User Adoption
+- **Feature Complexity**: Start with simple MVP, iterate based on feedback
+- **Migration from Existing Tools**: Provide import tools and migration guides
+- **Learning Curve**: Implement interactive onboarding and tooltips
+- **Channel Limitations**: Set clear expectations about channel capabilities
+
+## Resource Constraints
+- **Development Time**: Focus on MVP features, defer nice-to-haves
+- **API Rate Limits**: Implement caching and request batching
+- **Storage Costs**: Use efficient data retention policies
+- **Support Load**: Build self-service resources and documentation
+
+# Appendix  
+
+## Competitive Analysis
+- **Trengo**: Primary inspiration, multi-channel focus
+- **Zendesk**: Enterprise features and integration ecosystem
+- **Intercom**: Strong on automation and AI features
+- **Freshdesk**: Good balance of features and usability
+
+## Technical Specifications
+- **Performance Targets**: <200ms response time, <3s initial load
+- **Availability**: 99.9% uptime SLA
+- **Security**: SOC 2 compliance ready, encryption at rest and in transit
+- **Scalability**: Support 10,000+ concurrent users
+
+## Integration Requirements
+- **Email**: SMTP/IMAP support, major providers (Gmail, Outlook)
+- **WhatsApp**: Official Business API compliance
+- **Authentication**: OAuth2 providers (Google, Microsoft, GitHub)
+- **Webhooks**: Signed payloads, retry logic, event logs
+</PRD> 

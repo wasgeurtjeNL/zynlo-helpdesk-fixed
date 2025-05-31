@@ -1,0 +1,43 @@
+# Task ID: 10
+# Title: Implement WhatsApp Business Integration
+# Status: pending
+# Dependencies: 7
+# Priority: low
+# Description: Build WhatsApp Business API integration with webhook receiver, message normalization, media handling, and delivery status tracking in compliance with official API requirements.
+# Details:
+Register webhook endpoint with WhatsApp Business API. Implement webhook signature verification using Facebook's crypto requirements. Build message parser for WhatsApp's specific JSON format. Handle media messages with download and storage in Supabase Storage. Implement delivery status webhooks (sent, delivered, read). Create WhatsApp-specific features: quick replies, list messages, buttons. Add phone number validation and formatting. Implement session management for 24-hour messaging window compliance.
+
+# Test Strategy:
+Test webhook signature validation with valid and invalid signatures. Verify message parsing handles all WhatsApp message types. Test media download and storage with various file sizes. Validate delivery status updates correctly. Test 24-hour session window enforcement.
+
+# Subtasks:
+## 1. Set up WhatsApp Business API webhook endpoint and verification [pending]
+### Dependencies: None
+### Description: Create a webhook endpoint to receive WhatsApp messages and implement Facebook's signature verification to ensure requests are authentic
+### Details:
+Create POST endpoint at /api/webhooks/whatsapp. Implement HMAC SHA256 signature verification using the app secret. Handle GET requests for webhook verification challenge. Store webhook configuration in environment variables. Return appropriate HTTP status codes for success/failure.
+
+## 2. Build WhatsApp message parser and normalizer [pending]
+### Dependencies: 10.1
+### Description: Parse incoming WhatsApp webhook payloads and normalize messages into a standard format for the application
+### Details:
+Parse WhatsApp's nested JSON structure for text, media, location, and contact messages. Extract sender information, message ID, timestamp, and conversation context. Map WhatsApp message types to internal message schema. Handle message status updates (sent, delivered, read, failed). Create TypeScript interfaces for WhatsApp webhook payload types.
+
+## 3. Implement media handling with Supabase Storage [pending]
+### Dependencies: 10.2
+### Description: Download media files from WhatsApp's CDN and store them in Supabase Storage with proper organization and access control
+### Details:
+Authenticate media download requests using WhatsApp access token. Download images, videos, audio, and documents from WhatsApp CDN URLs. Upload to Supabase Storage with folder structure by conversation/date. Generate secure URLs for media access. Handle media size limits and supported formats. Implement retry logic for failed downloads.
+
+## 4. Create WhatsApp-specific messaging features [pending]
+### Dependencies: 10.2
+### Description: Implement WhatsApp's interactive message types including quick replies, list messages, and button templates
+### Details:
+Build message builders for quick reply buttons (max 3 options). Implement list message structure with sections and rows. Create button template messages with call-to-action and URL buttons. Add phone number validation and E.164 formatting. Implement message template management for notifications outside 24-hour window.
+
+## 5. Implement session management and delivery tracking [pending]
+### Dependencies: 10.1, 10.2, 10.4
+### Description: Track 24-hour messaging windows and implement comprehensive delivery status tracking for all messages
+### Details:
+Store conversation session timestamps and track 24-hour windows. Queue messages that fall outside session window for template sending. Update message status in database based on WhatsApp callbacks. Implement read receipts and typing indicators. Create session expiry notifications. Build analytics for message delivery rates.
+

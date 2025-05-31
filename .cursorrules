@@ -1,0 +1,492 @@
+# Ticketsysteem - Cursor Ruleset
+
+## 🎯 Project Overzicht
+Dit is een modern ticketsysteem geïnspireerd door Trengo, gebouwd met Next.js, Supabase en TypeScript.
+
+## 🚀 Development Guide
+
+### Quick Start Commands
+```bash
+pnpm install         # Install dependencies
+pnpm dev            # Start development server
+pnpm dev:clean      # Clean build cache and start dev server
+```
+
+### Production Mode
+```bash
+pnpm build          # Build for production
+pnpm start          # Start production server
+pnpm restart        # Build and start production server
+```
+
+### Monorepo Commands
+```bash
+pnpm -w dev         # Start all apps in development
+pnpm -F dashboard dev    # Start only dashboard
+pnpm -F api-server dev   # Start only API server
+```
+
+### Troubleshooting
+```bash
+pnpm clean          # Clean all build caches
+pnpm clean:deps     # Remove node_modules and reinstall
+```
+
+## 🔧 Common Issues & Solutions
+
+### 1. "Cannot find module" Error
+**Problem**: Runtime error about missing vendor chunks
+**Solution**:
+```bash
+pnpm clean
+pnpm build
+```
+
+### 2. "Address already in use" Error
+**Problem**: Port 3000 is already occupied
+**Solution**:
+```bash
+# Windows
+taskkill /F /IM node.exe
+pnpm start
+
+# Or use different port
+pnpm dev -- -p 3001
+```
+
+### 3. "No production build found" Error
+**Problem**: Trying to start production server without build
+**Solution**:
+```bash
+pnpm restart
+```
+
+### 4. Type Errors After Database Changes
+**Problem**: TypeScript types out of sync with database
+**Solution**:
+```bash
+pnpm supabase:types  # Regenerate types from database
+```
+
+## 📋 Development Workflow
+
+### After Code Changes:
+1. **Development**: Just save files (hot reload works)
+2. **Production**: Run `pnpm restart`
+
+### After Database Changes:
+1. Create migration: `pnpm supabase migration new <name>`
+2. Apply migration: `pnpm supabase db push`
+3. Generate types: `pnpm supabase:types`
+4. Restart server: `pnpm restart`
+
+### After Package Updates:
+```bash
+pnpm install
+pnpm clean
+pnpm build
+```
+
+## 🗄️ Database Operations
+
+### Using Stored Procedures:
+- Always test queries in development first
+- Create procedures in `supabase/migrations/`
+- Use RLS policies for security
+- Document complex queries
+
+### Common Database Operations:
+```sql
+-- Create stored procedure for ticket assignment
+CREATE OR REPLACE FUNCTION assign_ticket(
+  ticket_id UUID,
+  agent_id UUID
+) RETURNS void AS $$
+BEGIN
+  UPDATE tickets 
+  SET assignee_id = agent_id,
+      status = 'open',
+      updated_at = NOW()
+  WHERE id = ticket_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+## 🎯 Best Practices
+
+1. **Always build before production**: `pnpm build`
+2. **Clean cache when in doubt**: `pnpm clean`
+3. **Use development mode for testing**: `pnpm dev`
+4. **Restart after database changes**: `pnpm restart`
+5. **Check logs for errors**: Look at terminal output
+6. **Run type checks**: `pnpm type-check`
+7. **Format code**: `pnpm format`
+
+## 📝 Development Notes
+
+- Development server: http://localhost:3000 (dashboard)
+- API server: http://localhost:3001 (webhooks)
+- Supabase Studio: http://localhost:54323
+- Database: Supabase (check .env.local for config)
+- Email testing: Use Supabase Inbucket at http://localhost:54324
+
+## 📁 Project Structuur
+
+```
+zynlo-helpdesk/
+├── apps/
+│   ├── dashboard/              # Next.js frontend
+│   │   ├── app/                # App Router pagina's: inbox, tickets, settings
+│   │   ├── components/         # UI componenten: ChatWindow, Sidebar, TicketList
+│   │   ├── lib/                # Utilities: Supabase client, auth helpers
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── services/           # API service layers
+│   │   └── public/             # Static assets
+│   │
+│   └── api-server/             # Express API voor webhooks
+│       ├── routes/
+│       │   ├── webhooks/       # Webhook endpoints voor kanalen
+│       │   │   ├── whatsapp.ts
+│       │   │   ├── email.ts
+│       │   │   └── chat.ts
+│       │   ├── channels/       # Channel management endpoints
+│       │   └── ai-journeys/    # AI automation endpoints
+│       ├── middleware/         # Auth, rate limiting, validation
+│       └── utils/              # Helpers voor API processing
+│
+├── packages/
+│   ├── ui/                     # Design System componenten
+│   │   ├── components/         # Button, Modal, Form, etc.
+│   │   ├── utils/              # Styling utilities
+│   │   └── stories/            # Storybook stories
+│   │
+│   ├── supabase/               # Database layer
+│   │   ├── client.ts           # Supabase client setup
+│   │   ├── types/              # Generated TypeScript types
+│   │   ├── hooks/              # Data fetching hooks
+│   │   └── services/           # Database operations
+│   │
+│   └── utils/                  # Shared utilities
+│       ├── validation/         # Zod schemas
+│       ├── format/             # Date, number formatters
+│       └── constants/          # Shared constants
+│
+├── supabase/
+│   ├── migrations/             # Database schema migrations
+│   ├── functions/              # Edge Functions
+│   │   ├── send-notification/
+│   │   ├── process-webhook/
+│   │   └── ai-journey-step/
+│   └── seed.sql                # Initial data
+│
+├── docs/                       # Project documentation
+├── .env.local                  # Environment variables
+├── docker-compose.yml          # Local development setup
+└── turbo.json                  # Turborepo configuration
+```
+
+### apps/dashboard
+**Doel:** Frontend UI van het ticketsysteem platform.
+
+**Regels:**
+- Gebruik Next.js 14+ met App Router
+- Gebruik `@/lib/supabase/client` voor alle data calls
+- Geen directe fetches in components – gebruik hooks of services
+- Pagina's in `app/`, componenten in `components/`
+- Split grote componenten op in kleinere, herbruikbare delen
+- Styling uitsluitend via Tailwind CSS, geen inline styles
+- Gebruik `dynamic()` import voor zware UI-segmenten
+- Server Components by default, Client Components alleen waar nodig
+- Gebruik `loading.tsx` en `error.tsx` voor betere UX
+
+### apps/api-server/routes/webhooks
+**Doel:** Ontvangst en verwerking van inkomende berichten (WhatsApp, email, etc).
+
+**Regels:**
+- Endpoint naam = kanaalnaam (`/webhooks/whatsapp.ts`)
+- Altijd `POST` als HTTP methode
+- Headers authenticeren met `x-api-key` of signature verification
+- Log alle payloads naar Supabase `webhook_logs` tabel
+- Fouten loggen maar nooit de webhook laten crashen (altijd 200 OK)
+- JSON-structuur normaliseren naar:
+  ```typescript
+  {
+    message: string,
+    sender: { id: string, name?: string },
+    channel: string,
+    metadata?: Record<string, any>
+  }
+  ```
+- Gebruik queue/worker pattern voor zware verwerking
+- Idempotency keys implementeren tegen dubbele verwerking
+
+### supabase/functions
+**Doel:** Edge Functions voor systeemtaken zoals notificaties, AI journeys, automations.
+
+**Regels:**
+- Pure functies – geen UI code
+- Alleen async/await gebruiken, geen callbacks
+- Parameters valideren met Zod of vergelijkbaar
+- Resultaat altijd standaardiseren:
+  ```typescript
+  {
+    success: boolean,
+    data?: T,
+    error?: { code: string, message: string }
+  }
+  ```
+- Error codes op basis van HTTP status (4xx client, 5xx server)
+- Gebruik Deno runtime features
+- Max execution time: 30 seconden
+- Environment variables via Deno.env.get()
+
+### packages/ui
+**Doel:** Design System voor consistente UI componenten.
+
+**Regels:**
+- Alle componenten moeten `className` prop ondersteunen
+- Styling via Tailwind + CVA (Class Variance Authority) voor variants
+- Elk component heeft:
+  - TypeScript types
+  - Storybook story
+  - Unit tests
+  - Accessibility checks (ARIA labels)
+- Geen fetch of Supabase calls in UI-componenten
+- Forward refs waar nodig voor DOM access
+- Compound components pattern voor complexe UI
+
+### packages/supabase
+**Doel:** Supabase clients, hooks, types en services.
+
+**Regels:**
+- Eén centrale `createClient` functie voor client/server
+- Types genereren via `supabase gen types typescript`
+- Geen hardcoded queries – gebruik query builders
+- Alle hooks:
+  - Starten met `use`
+  - Returnen `{ data, error, loading, refetch }`
+  - Hebben proper cleanup
+- RLS (Row Level Security) altijd aan
+- ❗ Gebruik **Stored Procedures** voor:
+  - Complexe queries met joins
+  - Bulk operations
+  - Security-sensitive operaties
+- Database migrations in `supabase/migrations/`
+
+## 🔒 Authenticatie & Security
+
+**Regels:**
+- Supabase Auth met support voor:
+  - Email/Password
+  - Magic Links
+  - OAuth (Google, Microsoft)
+- `useUser()` hook voor auth state
+- Protected routes via middleware
+- API calls altijd met sessie validatie
+- Webhooks authenticeren met:
+  - HMAC signature verification
+  - IP whitelisting waar mogelijk
+- CORS configuratie strict houden
+- Rate limiting op alle endpoints
+
+## 🔄 Realtime & WebSockets
+
+**Regels:**
+- Supabase Realtime voor live updates
+- Subscriptions altijd met cleanup in useEffect
+- Eén centrale `RealtimeProvider` voor event management
+- Channel naming convention: `{resource}:{id}`
+- Presence tracking voor "user is typing" features
+- Reconnection logic met exponential backoff
+- Max 10 concurrent subscriptions per client
+
+## 📬 Ticket & Conversatie Systeem
+
+**Database Schema:**
+```sql
+-- Tickets tabel
+tickets (
+  id uuid primary key,
+  number serial unique,
+  subject text not null,
+  status enum ('new', 'open', 'pending', 'resolved', 'closed'),
+  priority enum ('low', 'normal', 'high', 'urgent'),
+  assignee_id uuid references users,
+  team_id uuid references teams,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- Conversaties
+conversations (
+  id uuid primary key,
+  ticket_id uuid references tickets,
+  channel enum ('email', 'whatsapp', 'chat', 'phone'),
+  external_id text,
+  metadata jsonb
+)
+
+-- Berichten
+messages (
+  id uuid primary key,
+  conversation_id uuid references conversations,
+  content text,
+  sender_type enum ('customer', 'agent', 'system'),
+  sender_id text,
+  attachments jsonb[],
+  created_at timestamptz
+)
+```
+
+**Business Logic:**
+- Nieuwe conversatie bij eerste contact
+- Auto-assign op basis van team rules
+- SLA tracking vanaf ticket creatie
+- Escalatie bij overschrijding deadlines
+- Merge duplicate tickets functionaliteit
+
+## ⚠️ Logging & Monitoring
+
+**Regels:**
+- Development: `console.debug` met context labels
+  ```typescript
+  console.debug('[webhook:whatsapp]', payload)
+  ```
+- Production: Structured logging naar Supabase
+- Error tracking via Sentry of vergelijkbaar
+- Performance monitoring met Web Vitals
+- Custom metrics voor:
+  - Response times
+  - Queue lengths
+  - Webhook success rates
+
+## 📦 Build & Deployment
+
+**Regels:**
+- Next.js standalone build voor containers
+- Environment-specific configs
+- Health check endpoints
+- Graceful shutdown handlers
+- Bundle size budgets:
+  - First Load JS: < 100KB
+  - Per route: < 200KB gzipped
+- Image optimization via Next.js Image
+- Static assets op CDN
+
+## 🚨 Code Quality Rules
+
+**Verboden:**
+- ❌ `any` type (gebruik `unknown` of specifieke types)
+- ❌ `fetch()` in UI componenten
+- ❌ `useEffect` zonder dependency array of cleanup
+- ❌ Hardcoded secrets of API keys
+- ❌ Direct state mutation
+- ❌ Synchrone heavy operations in render
+- ❌ Console.log in production code
+
+**Verplicht:**
+- ✅ Error boundaries rond async componenten
+- ✅ Loading states voor alle async operations
+- ✅ Proper TypeScript types (no implicit any)
+- ✅ Accessibility: ARIA labels, keyboard navigation
+- ✅ Mobile-first responsive design
+- ✅ Optimistic updates waar mogelijk
+
+## 🧪 Testing Strategy
+
+**Unit Tests:**
+- Alle utility functions
+- Custom hooks
+- API route handlers
+
+**Integration Tests:**
+- Database queries
+- Webhook processing
+- Authentication flows
+
+**E2E Tests:**
+- Critical user journeys
+- Ticket creation flow
+- Agent workflow
+
+## 📝 Development Workflow
+
+**Branch Strategy:**
+- `main` - production
+- `develop` - staging
+- `feature/*` - nieuwe features
+- `fix/*` - bug fixes
+
+**Commit Convention:**
+```
+type(scope): description
+
+feat(tickets): add bulk assign functionality
+fix(webhooks): handle empty payload
+docs(api): update webhook documentation
+```
+
+**PR Checklist:**
+- [ ] TypeScript errors opgelost
+- [ ] Tests toegevoegd/geüpdatet
+- [ ] Documentatie bijgewerkt
+- [ ] Bundle size gecontroleerd
+- [ ] Accessibility getest
+- [ ] Mobile responsive getest
+- [ ] Error handling compleet
+- [ ] Logging toegevoegd
+
+## 🔧 Development Setup
+
+**Required Tools:**
+- Node.js 18+
+- pnpm (package manager)
+- Supabase CLI
+- Docker (voor local Supabase)
+
+**Environment Variables:**
+```env
+# Public (safe for frontend)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# Private (backend only)
+SUPABASE_SERVICE_KEY=
+WEBHOOK_SECRET=
+SENTRY_DSN=
+```
+
+## 📚 Key Dependencies
+
+**Frontend:**
+- Next.js 14+
+- React 18+
+- Tailwind CSS
+- Radix UI (headless components)
+- React Query / SWR
+- Zod (validation)
+
+**Backend:**
+- Supabase (database, auth, realtime)
+- Deno (edge functions)
+- Bull/BullMQ (job queues)
+- Resend (email)
+
+**Development:**
+- TypeScript 5+
+- ESLint + Prettier
+- Vitest (testing)
+- Storybook (component docs)
+
+## 🎯 Performance Targets
+
+- Time to First Byte: < 200ms
+- First Contentful Paint: < 1s
+- Time to Interactive: < 3s
+- Lighthouse Score: > 90
+- Database queries: < 100ms
+- Webhook processing: < 500ms
+
+---
+
+Dit ruleset is je leidraad voor consistente, schaalbare development. Bij twijfel: kies voor simpliciteit, leesbaarheid en onderhoudbaarheid. 

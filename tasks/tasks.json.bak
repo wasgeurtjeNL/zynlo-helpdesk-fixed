@@ -1,0 +1,410 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Setup Monorepo Infrastructure with Turborepo",
+      "description": "Initialize the project foundation with a Turborepo monorepo structure, configure workspaces for frontend dashboard, API webhook server, and shared packages. Set up development environment with TypeScript, ESLint, and Prettier.",
+      "details": "Create root package.json with Turborepo configuration. Set up workspaces: apps/dashboard (Next.js 14+), apps/webhook-server (Express.js), packages/ui (component library), packages/database (Supabase client), packages/types (shared TypeScript types). Configure tsconfig.json for each workspace with proper path aliases. Set up .env files structure for different environments. Initialize Git with proper .gitignore. Configure Docker setup for containerized deployment.",
+      "testStrategy": "Verify all workspaces can be built independently. Test that shared packages are properly linked. Ensure hot reload works across workspaces. Validate TypeScript compilation and linting passes.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 2,
+      "title": "Initialize Supabase Database and Authentication",
+      "description": "Set up Supabase project with PostgreSQL database, configure authentication system with email/password and OAuth providers, implement Row Level Security policies for multi-tenant architecture.",
+      "details": "Create Supabase project and configure environment variables. Design and implement core database schema: users (with roles: agent, team_lead, admin), organizations (multi-tenant support), teams, tickets, conversations, messages, attachments, tags. Set up RLS policies for tenant isolation. Configure Supabase Auth with email confirmation, password reset flows. Implement OAuth2 providers (Google, Microsoft, GitHub). Create database migrations and seed data scripts. Set up real-time subscriptions for live updates.",
+      "testStrategy": "Test authentication flows (signup, login, logout, password reset). Verify RLS policies prevent cross-tenant data access. Validate real-time subscriptions work for ticket updates. Test database migrations rollback and forward.",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 3,
+      "title": "Build Core UI Component Library",
+      "description": "Create a comprehensive React component library using Radix UI primitives and Tailwind CSS, implementing design system with dark/light theme support and accessibility compliance.",
+      "details": "Set up packages/ui with Radix UI and Tailwind CSS. Create base components: Button, Input, Select, Dialog, Toast, Card, Badge, Avatar, Dropdown. Implement theme system with CSS variables for dark/light modes. Build layout components: Sidebar, Header, PageContainer. Create specialized components: TicketCard, MessageBubble, ChannelIcon, StatusBadge. Implement keyboard navigation hooks. Set up Storybook for component documentation. Ensure WCAG 2.1 AA compliance with proper ARIA labels.",
+      "testStrategy": "Unit test all components with React Testing Library. Test keyboard navigation and screen reader compatibility. Visual regression testing with Storybook. Validate theme switching works correctly.",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set up UI package infrastructure with Radix UI and Tailwind CSS",
+          "description": "Initialize the packages/ui directory with necessary dependencies, configuration files, and build setup for the component library",
+          "dependencies": [],
+          "details": "Create packages/ui directory structure. Install Radix UI primitives (@radix-ui/react-*), Tailwind CSS, and required build tools. Configure tsconfig.json for React components. Set up Tailwind config with custom design tokens. Create package.json with proper exports. Configure build scripts using tsup or similar bundler. Set up CSS variables structure for theming.",
+          "status": "pending",
+          "testStrategy": "Verify package builds successfully and can be imported. Test that Tailwind classes compile correctly. Ensure TypeScript types are properly exported."
+        },
+        {
+          "id": 2,
+          "title": "Implement theme system with dark/light mode support",
+          "description": "Create a comprehensive theming system using CSS variables that supports dark and light modes with smooth transitions",
+          "dependencies": [
+            1
+          ],
+          "details": "Define CSS variables for colors, spacing, typography, and shadows in :root and [data-theme='dark']. Create ThemeProvider component with context API for theme switching. Implement useTheme hook for accessing theme state. Set up automatic theme detection based on system preferences. Create theme toggle component. Ensure all CSS variables follow consistent naming convention.",
+          "status": "pending",
+          "testStrategy": "Test theme switching functionality across all components. Verify CSS variables update correctly. Test system preference detection. Ensure no flash of unstyled content on initial load."
+        },
+        {
+          "id": 3,
+          "title": "Build base UI components with Radix primitives",
+          "description": "Create foundational components (Button, Input, Select, Dialog, Toast, Card, Badge, Avatar, Dropdown) using Radix UI primitives with full accessibility support",
+          "dependencies": [
+            2
+          ],
+          "details": "For each component: wrap Radix primitive with styled wrapper, implement variant props using class-variance-authority, add proper TypeScript interfaces, ensure ARIA labels and keyboard navigation work correctly. Components should support size variants, color schemes tied to theme system, and proper focus states. Include forwardRef support for all interactive components.",
+          "status": "pending",
+          "testStrategy": "Test each component in isolation for keyboard navigation, screen reader compatibility, and visual states. Verify WCAG 2.1 AA compliance using automated tools. Test component composition and prop forwarding."
+        },
+        {
+          "id": 4,
+          "title": "Create layout and specialized components",
+          "description": "Build layout components (Sidebar, Header, PageContainer) and domain-specific components (TicketCard, MessageBubble, ChannelIcon, StatusBadge) with consistent styling",
+          "dependencies": [
+            3
+          ],
+          "details": "Layout components should be responsive and support different configurations. Sidebar should handle collapsed/expanded states with smooth animations. Header should integrate with theme toggle. PageContainer should handle content width and padding. Specialized components should compose base components and follow established patterns. TicketCard should display ticket metadata efficiently. MessageBubble should support different message types and states.",
+          "status": "pending",
+          "testStrategy": "Test responsive behavior across breakpoints. Verify layout components work together without conflicts. Test specialized components with various data states including edge cases."
+        },
+        {
+          "id": 5,
+          "title": "Set up Storybook documentation and accessibility testing",
+          "description": "Configure Storybook for component documentation with interactive examples and automated accessibility testing",
+          "dependencies": [
+            4
+          ],
+          "details": "Install and configure Storybook 7+ with React and TypeScript support. Create stories for all components showcasing different states and variants. Set up Storybook addons: a11y for accessibility testing, controls for interactive props, docs for auto-generated documentation. Configure dark mode addon to work with theme system. Create MDX documentation pages for design system guidelines. Set up chromatic or similar for visual regression testing.",
+          "status": "pending",
+          "testStrategy": "Verify all components have comprehensive stories. Run accessibility checks on all story variations. Test that theme switching works in Storybook. Ensure documentation is auto-generated from TypeScript types."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Implement Ticket Management System",
+      "description": "Build the core ticket CRUD operations with automatic ticket creation, status workflow management, priority levels, and basic assignment functionality.",
+      "details": "Create ticket service layer with Supabase client. Implement ticket creation from incoming messages with automatic ID generation. Build status workflow engine (New → Open → Pending → Resolved → Closed) with validation rules. Add priority system (Low, Normal, High, Urgent) with visual indicators. Implement basic assignment to agents with availability checking. Create ticket listing with pagination and filtering. Add ticket detail view with conversation history. Implement ticket merging functionality for duplicates.",
+      "testStrategy": "Test ticket creation from different sources. Validate status transitions follow business rules. Test assignment logic respects agent availability. Verify pagination works with large datasets. Test concurrent ticket updates.",
+      "priority": "high",
+      "dependencies": [
+        2,
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set up Ticket Service Layer and Database Schema",
+          "description": "Create the foundational ticket service layer with Supabase client integration and define the database schema for tickets",
+          "dependencies": [],
+          "details": "Create a TicketService class that initializes Supabase client. Define ticket table schema with fields: id (auto-generated UUID), title, description, status (enum), priority (enum), created_at, updated_at, assigned_to (foreign key to agents), created_by, conversation_history (JSON), and metadata. Set up database migrations and indexes for efficient querying.",
+          "status": "pending",
+          "testStrategy": "Unit test service initialization, mock Supabase client for CRUD operations, verify schema constraints"
+        },
+        {
+          "id": 2,
+          "title": "Implement Ticket Creation and Auto-generation from Messages",
+          "description": "Build ticket creation functionality with automatic ID generation and the ability to create tickets from incoming messages",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement createTicket method in TicketService that accepts message data and automatically generates ticket ID. Parse incoming messages to extract title, description, and initial priority. Set default status to 'New'. Create conversation history entry with the original message. Implement validation for required fields and data integrity.",
+          "status": "pending",
+          "testStrategy": "Test ticket creation with various message formats, verify ID uniqueness, test validation rules and error handling"
+        },
+        {
+          "id": 3,
+          "title": "Build Status Workflow Engine with Validation Rules",
+          "description": "Implement the ticket status workflow system with state transitions and validation logic",
+          "dependencies": [
+            1
+          ],
+          "details": "Create StatusWorkflow class with states: New, Open, Pending, Resolved, Closed. Define allowed transitions (e.g., New→Open, Open→Pending/Resolved, etc.). Implement validateStatusTransition method to enforce rules. Add status change history tracking. Create updateTicketStatus method with transition validation and automatic timestamp updates.",
+          "status": "pending",
+          "testStrategy": "Test all valid and invalid status transitions, verify history tracking, test concurrent status updates"
+        },
+        {
+          "id": 4,
+          "title": "Implement Priority System and Agent Assignment",
+          "description": "Add priority levels with visual indicators and basic agent assignment with availability checking",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Define priority enum (Low, Normal, High, Urgent) with corresponding visual indicators (colors/icons). Implement assignTicket method that checks agent availability through agent status/workload. Create getAvailableAgents method to list agents who can take new tickets. Add priority-based sorting for ticket queues. Implement automatic assignment rules based on priority and agent skills.",
+          "status": "pending",
+          "testStrategy": "Test priority assignment and updates, verify agent availability logic, test assignment conflicts and edge cases"
+        },
+        {
+          "id": 5,
+          "title": "Create Ticket UI Components and Merge Functionality",
+          "description": "Build ticket listing with pagination/filtering, detail view with conversation history, and duplicate merging",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Create TicketList component with pagination (limit/offset), filtering by status/priority/assignee, and sorting options. Build TicketDetail component showing full ticket info and conversation history timeline. Implement mergeTickets method that combines conversation histories, preserves the primary ticket, and archives duplicates. Add search functionality for finding potential duplicates.",
+          "status": "pending",
+          "testStrategy": "Test pagination with various data sizes, verify filter combinations, test merge operation data integrity, UI component rendering tests"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Develop Message Abstraction Layer",
+      "description": "Create a unified message interface that normalizes communications from different channels (email, WhatsApp, live chat) into a consistent format for the unified inbox.",
+      "details": "Design IMessage interface with common fields: id, channel, sender, recipient, content, attachments, metadata, timestamp. Create channel-specific adapters that transform native formats to IMessage. Implement message storage with channel-specific data preservation. Build message rendering system that handles rich media and formatting. Create attachment handling system with virus scanning and size limits. Implement message threading logic for conversation continuity.",
+      "testStrategy": "Unit test each channel adapter with sample data. Test message normalization preserves all critical information. Validate attachment handling with various file types. Test threading logic maintains conversation context.",
+      "priority": "high",
+      "dependencies": [
+        4
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 6,
+      "title": "Build Email Channel Integration",
+      "description": "Implement full email client capabilities with SMTP/IMAP support, threading, attachments, and rich text handling for major email providers.",
+      "details": "Set up IMAP client for receiving emails with OAuth2 authentication for Gmail/Outlook. Implement email parsing with proper MIME handling for multipart messages. Create SMTP service for sending emails with proper headers and threading. Build email thread reconstruction logic using Message-ID and References headers. Implement attachment extraction and storage in Supabase Storage. Add rich text editor with HTML email composition. Handle email-specific features: CC/BCC, reply-all, forwarding.",
+      "testStrategy": "Test email reception from multiple providers. Validate threading works correctly with complex email chains. Test attachment handling with various MIME types. Verify sent emails appear correctly in recipient clients.",
+      "priority": "medium",
+      "dependencies": [
+        5
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set up IMAP Client with OAuth2 Authentication",
+          "description": "Implement IMAP client functionality with OAuth2 authentication support for Gmail and Outlook, including connection management and folder synchronization",
+          "dependencies": [],
+          "details": "Use node-imap or imap-simple library. Implement OAuth2 flow for Gmail using Google APIs and for Outlook using Microsoft Graph API. Create connection pool manager for handling multiple email accounts. Implement folder listing, message fetching with pagination, and real-time email monitoring using IDLE command. Store OAuth tokens securely in Supabase with refresh token handling.",
+          "status": "pending",
+          "testStrategy": "Create mock IMAP server for unit tests. Test OAuth2 flow with test accounts for both Gmail and Outlook. Verify connection pooling, folder synchronization, and message retrieval with various email structures."
+        },
+        {
+          "id": 2,
+          "title": "Implement Email Parsing and MIME Handling",
+          "description": "Build comprehensive email parsing system to handle multipart MIME messages, extract headers, body content, and identify attachments",
+          "dependencies": [
+            1
+          ],
+          "details": "Use mailparser or similar library for MIME parsing. Extract and parse all relevant headers (From, To, CC, BCC, Subject, Date, Message-ID, References, In-Reply-To). Handle multipart messages including text/plain, text/html, and mixed content types. Parse nested message structures and embedded images. Extract attachment metadata without downloading full content. Normalize email addresses and handle various encoding formats (quoted-printable, base64).",
+          "status": "pending",
+          "testStrategy": "Create test suite with various email formats including plain text, HTML, multipart with attachments, nested forwards, and different character encodings. Verify correct extraction of all components."
+        },
+        {
+          "id": 3,
+          "title": "Create SMTP Service for Sending Emails",
+          "description": "Implement SMTP client service with proper authentication, header management, and support for threading and email standards",
+          "dependencies": [],
+          "details": "Use nodemailer with SMTP transport. Implement OAuth2 authentication for Gmail and Outlook SMTP servers. Generate proper email headers including Message-ID, References, and In-Reply-To for threading. Handle recipient validation, email address formatting, and DKIM signing if required. Implement retry logic with exponential backoff for failed sends. Support both plain text and HTML email composition with automatic plain text fallback generation.",
+          "status": "pending",
+          "testStrategy": "Use ethereal.email for SMTP testing. Verify proper header generation, threading headers, and email delivery. Test authentication flows and error handling scenarios."
+        },
+        {
+          "id": 4,
+          "title": "Build Email Thread Reconstruction and Attachment Storage",
+          "description": "Implement logic to reconstruct email conversations into threads and handle attachment extraction and storage in Supabase",
+          "dependencies": [
+            2
+          ],
+          "details": "Create thread reconstruction algorithm using Message-ID, References, and In-Reply-To headers. Handle cases where headers are missing by falling back to subject matching and time-based grouping. Implement attachment extraction with streaming to Supabase Storage to handle large files efficiently. Create attachment metadata records in database linking to emails. Generate secure, time-limited URLs for attachment access. Implement virus scanning integration for attachments before storage.",
+          "status": "pending",
+          "testStrategy": "Test thread reconstruction with various email chains including broken threads, missing headers, and forwarded conversations. Verify attachment upload/download with different file types and sizes."
+        },
+        {
+          "id": 5,
+          "title": "Implement Rich Text Editor and Email-Specific Features",
+          "description": "Build rich text editor for HTML email composition and implement email-specific features like CC/BCC, reply-all, and forwarding",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Integrate rich text editor (Quill, TipTap, or similar) with HTML email output. Implement email templates and signature management. Build reply/reply-all logic that properly quotes original messages and maintains threading. Implement forward functionality with attachment handling. Create CC/BCC field management with proper recipient privacy. Add email scheduling, read receipts, and delivery status tracking. Implement draft auto-save functionality.",
+          "status": "pending",
+          "testStrategy": "Test editor output compatibility with major email clients. Verify reply/forward functionality maintains proper threading. Test CC/BCC privacy and recipient handling across different scenarios."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Create Express.js Webhook Server",
+      "description": "Build a robust webhook processing server with channel-specific endpoints, message queuing, rate limiting, and security middleware for reliable external integrations.",
+      "details": "Initialize Express.js server with TypeScript in apps/webhook-server. Implement webhook endpoint router with /webhooks/:channel pattern. Add request validation middleware with signature verification for each channel. Implement Bull queue for reliable message processing with retry logic. Add rate limiting with Redis to prevent abuse. Create webhook event logging for debugging. Implement health check endpoints for monitoring. Add graceful shutdown handling for zero-downtime deployments.",
+      "testStrategy": "Load test webhook endpoints for performance. Test signature validation rejects invalid requests. Verify queue retry logic handles failures. Test rate limiting blocks excessive requests. Validate graceful shutdown doesn't lose messages.",
+      "priority": "medium",
+      "dependencies": [
+        5
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "Implement Real-time Collaboration Features",
+      "description": "Build team collaboration capabilities including real-time presence indicators, internal comments, @mentions system, and collision detection for simultaneous editing.",
+      "details": "Implement presence system using Supabase Realtime with online/away/busy states. Create internal comments feature with visibility controls (hidden from customers). Build @mentions system with autocomplete and notification triggers. Implement collision detection using optimistic locking to prevent simultaneous responses. Add activity feed showing ticket history and agent actions in real-time. Create typing indicators for live collaboration awareness. Build notification system with in-app and email notifications.",
+      "testStrategy": "Test presence updates across multiple connected clients. Verify internal comments never appear in customer responses. Test @mention notifications reach intended recipients. Validate collision detection prevents data loss. Test real-time updates with network interruptions.",
+      "priority": "medium",
+      "dependencies": [
+        4,
+        7
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set up Supabase Realtime Infrastructure and Presence System",
+          "description": "Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time",
+          "dependencies": [],
+          "details": "Create presence table schema with user_id, status, last_seen fields. Set up Supabase Realtime subscriptions for presence updates. Implement presence state management with automatic timeout handling for disconnections. Create presence API endpoints for status updates. Build presence indicator UI components showing colored dots/badges for different states.",
+          "status": "pending",
+          "testStrategy": "Test presence updates with multiple concurrent users, verify automatic status changes on disconnect, test reconnection scenarios and state persistence"
+        },
+        {
+          "id": 2,
+          "title": "Build Internal Comments System with Visibility Controls",
+          "description": "Implement a commenting system that allows agents to add internal notes on tickets that are hidden from customers",
+          "dependencies": [
+            1
+          ],
+          "details": "Design comments table with ticket_id, user_id, content, is_internal flag, and timestamps. Create comment API endpoints with authorization checks for internal visibility. Build comment UI components with visual distinction for internal comments. Implement comment threading and editing capabilities. Add comment permissions based on user roles.",
+          "status": "pending",
+          "testStrategy": "Verify internal comments are not exposed in customer-facing APIs, test comment CRUD operations, validate permission checks for different user roles"
+        },
+        {
+          "id": 3,
+          "title": "Implement @Mentions System with Autocomplete",
+          "description": "Create a mention system that allows agents to tag other team members in comments and ticket descriptions with autocomplete functionality",
+          "dependencies": [
+            2
+          ],
+          "details": "Build mention parser to detect @username patterns in text. Create autocomplete API endpoint that searches active users. Implement frontend autocomplete dropdown component triggered by @ character. Store mentions in a separate table for efficient querying. Add mention highlighting in rendered text. Create mention extraction utility for notification triggers.",
+          "status": "pending",
+          "testStrategy": "Test autocomplete performance with large user lists, verify mention parsing accuracy, test mention notifications are triggered correctly"
+        },
+        {
+          "id": 4,
+          "title": "Implement Collision Detection and Typing Indicators",
+          "description": "Build optimistic locking mechanism to prevent conflicting edits and add real-time typing indicators for collaboration awareness",
+          "dependencies": [
+            1
+          ],
+          "details": "Add version/updated_at fields to tickets for optimistic locking. Implement conflict detection on save with retry logic. Create typing indicator channels in Supabase Realtime. Build typing indicator UI showing who is currently editing. Implement debounced typing events to reduce network traffic. Add visual warnings when conflicts are detected.",
+          "status": "pending",
+          "testStrategy": "Simulate simultaneous edits to verify conflict detection, test typing indicator latency and cleanup, verify version conflicts are handled gracefully"
+        },
+        {
+          "id": 5,
+          "title": "Create Activity Feed and Notification System",
+          "description": "Build a real-time activity feed showing ticket history and implement a comprehensive notification system with in-app and email delivery",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Design activity log table tracking all ticket events and agent actions. Create activity feed API with pagination and filtering. Build real-time activity feed UI component with live updates. Implement notification preferences table for user settings. Create notification queue system for reliable delivery. Build in-app notification dropdown with unread counts. Integrate email notification service for important events.",
+          "status": "pending",
+          "testStrategy": "Test activity feed real-time updates, verify notification delivery for all event types, test notification preferences are respected, validate email delivery reliability"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Build Analytics Dashboard and Reporting",
+      "description": "Create comprehensive analytics system with real-time metrics dashboard, agent performance tracking, custom report builder, and data export capabilities.",
+      "details": "Design analytics database schema with materialized views for performance. Build real-time dashboard with key metrics: average response time, resolution time, ticket volume, customer satisfaction. Implement agent performance tracking: tickets handled, response times, quality scores. Create channel comparison analytics showing performance across email, WhatsApp, chat. Build custom report builder with drag-drop interface and saved reports. Add data export functionality (CSV, PDF) with scheduled reports. Implement caching layer for expensive queries.",
+      "testStrategy": "Test metric calculations accuracy with known datasets. Verify real-time updates don't impact performance. Test report builder generates valid SQL queries. Validate exports contain correct data formatting. Load test dashboard with concurrent users.",
+      "priority": "low",
+      "dependencies": [
+        4,
+        6
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design and Implement Analytics Database Schema",
+          "description": "Create optimized database schema for analytics data storage including tables for metrics, agent performance, and channel data with materialized views for query performance",
+          "dependencies": [],
+          "details": "Design tables for: metrics_raw (timestamp, metric_type, value, metadata), agent_performance (agent_id, timestamp, tickets_handled, avg_response_time, quality_score), channel_metrics (channel_type, timestamp, volume, avg_resolution_time), customer_satisfaction (ticket_id, score, timestamp). Create materialized views for hourly/daily aggregations. Implement partitioning by date for large tables. Add indexes on commonly queried fields (timestamp, agent_id, channel_type)",
+          "status": "pending",
+          "testStrategy": "Test query performance with sample data sets of 1M+ records. Verify materialized view refresh performance. Test partition pruning effectiveness"
+        },
+        {
+          "id": 2,
+          "title": "Build Real-Time Metrics Dashboard Backend",
+          "description": "Implement backend services and APIs for real-time metrics collection and aggregation including WebSocket support for live updates",
+          "dependencies": [
+            1
+          ],
+          "details": "Create metrics collection service to capture events from ticket system. Implement aggregation service for real-time calculations (5-min, hourly windows). Build REST API endpoints: GET /metrics/realtime, GET /metrics/historical, GET /agents/performance. Add WebSocket endpoint for live dashboard updates. Implement Redis-based caching layer with TTL for expensive queries. Create background jobs for materialized view refresh",
+          "status": "pending",
+          "testStrategy": "Load test WebSocket connections with 1000+ concurrent clients. Verify cache hit rates > 80%. Test metric calculation accuracy with known data sets"
+        },
+        {
+          "id": 3,
+          "title": "Develop Interactive Dashboard Frontend",
+          "description": "Create responsive web dashboard with real-time charts, KPI widgets, and drill-down capabilities for metrics visualization",
+          "dependencies": [
+            2
+          ],
+          "details": "Build dashboard layout with grid system for customizable widget placement. Implement real-time charts using Chart.js or D3.js for: ticket volume trends, average response times, resolution time distribution, customer satisfaction scores. Create KPI cards showing current values with trend indicators. Add date range selector and refresh controls. Implement drill-down functionality from summary to detailed views. Add responsive design for mobile/tablet viewing",
+          "status": "pending",
+          "testStrategy": "Test dashboard performance with continuous data updates. Verify chart rendering with large datasets. Test responsive layouts on multiple devices"
+        },
+        {
+          "id": 4,
+          "title": "Create Custom Report Builder Interface",
+          "description": "Develop drag-and-drop report builder allowing users to create, save, and share custom reports with various visualization options",
+          "dependencies": [
+            2
+          ],
+          "details": "Build drag-drop interface for report components (tables, charts, filters). Implement report template system with predefined layouts. Create query builder translating UI selections to SQL. Add visualization options: line charts, bar charts, pie charts, data tables. Implement report saving with versioning and sharing capabilities. Add report scheduling system for automated generation. Create report preview mode with export options",
+          "status": "pending",
+          "testStrategy": "Test drag-drop functionality across browsers. Verify query generation produces valid SQL. Test report generation with complex filter combinations"
+        },
+        {
+          "id": 5,
+          "title": "Implement Data Export and Scheduled Reports",
+          "description": "Build comprehensive data export functionality supporting multiple formats and automated report distribution via email",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Implement export engines for CSV (streaming for large datasets), PDF (using Puppeteer or similar for formatted reports), Excel with multiple sheets and formatting. Create job queue system for scheduled reports using Bull or similar. Build email template system for report delivery. Add export API endpoints with authentication. Implement progress tracking for large exports. Create admin interface for managing scheduled reports",
+          "status": "pending",
+          "testStrategy": "Test export performance with datasets > 100k rows. Verify PDF formatting consistency. Test scheduled job reliability and error recovery"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Implement WhatsApp Business Integration",
+      "description": "Build WhatsApp Business API integration with webhook receiver, message normalization, media handling, and delivery status tracking in compliance with official API requirements.",
+      "details": "Register webhook endpoint with WhatsApp Business API. Implement webhook signature verification using Facebook's crypto requirements. Build message parser for WhatsApp's specific JSON format. Handle media messages with download and storage in Supabase Storage. Implement delivery status webhooks (sent, delivered, read). Create WhatsApp-specific features: quick replies, list messages, buttons. Add phone number validation and formatting. Implement session management for 24-hour messaging window compliance.",
+      "testStrategy": "Test webhook signature validation with valid and invalid signatures. Verify message parsing handles all WhatsApp message types. Test media download and storage with various file sizes. Validate delivery status updates correctly. Test 24-hour session window enforcement.",
+      "priority": "low",
+      "dependencies": [
+        7
+      ],
+      "status": "pending",
+      "subtasks": []
+    }
+  ]
+}

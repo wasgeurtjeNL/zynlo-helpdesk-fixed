@@ -1,0 +1,50 @@
+{
+  "name": "zynlo-helpdesk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Modern ticketsysteem geïnspireerd door Trengo",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:dashboard": "pnpm -F dashboard dev",
+    "dev:api": "pnpm -F api-server dev",
+    "dev:clean": "pnpm clean && pnpm dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "restart": "pnpm build && pnpm start",
+    "clean": "pnpm -r clean && rimraf node_modules/.cache",
+    "clean:deps": "pnpm -r exec rm -rf node_modules && rm -rf node_modules && pnpm install",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{js,ts,tsx,md,json}\"",
+    "type-check": "turbo run type-check",
+    "test": "pnpm -r test",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:types": "pnpm -F supabase generate-types",
+    "prepare": "husky install",
+    "apply-indexes": "node scripts/apply-indexes.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "eslint": "^8.54.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
+    "prettier": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "turbo": "^2.5.3",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.11.0",
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}

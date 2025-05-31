@@ -1,0 +1,11 @@
+# Task ID: 7
+# Title: Create Express.js Webhook Server
+# Status: done
+# Dependencies: 5
+# Priority: medium
+# Description: Build a robust webhook processing server with channel-specific endpoints, message queuing, rate limiting, and security middleware for reliable external integrations.
+# Details:
+Initialize Express.js server with TypeScript in apps/webhook-server. Implement webhook endpoint router with /webhooks/:channel pattern. Add request validation middleware with signature verification for each channel. Implement Bull queue for reliable message processing with retry logic. Add rate limiting with Redis to prevent abuse. Create webhook event logging for debugging. Implement health check endpoints for monitoring. Add graceful shutdown handling for zero-downtime deployments.
+
+# Test Strategy:
+Load test webhook endpoints for performance. Test signature validation rejects invalid requests. Verify queue retry logic handles failures. Test rate limiting blocks excessive requests. Validate graceful shutdown doesn't lose messages.

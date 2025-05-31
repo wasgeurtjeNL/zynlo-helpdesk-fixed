@@ -1,0 +1,43 @@
+# Task ID: 8
+# Title: Implement Real-time Collaboration Features
+# Status: pending
+# Dependencies: 4, 7
+# Priority: medium
+# Description: Build team collaboration capabilities including real-time presence indicators, internal comments, @mentions system, and collision detection for simultaneous editing.
+# Details:
+Implement presence system using Supabase Realtime with online/away/busy states. Create internal comments feature with visibility controls (hidden from customers). Build @mentions system with autocomplete and notification triggers. Implement collision detection using optimistic locking to prevent simultaneous responses. Add activity feed showing ticket history and agent actions in real-time. Create typing indicators for live collaboration awareness. Build notification system with in-app and email notifications.
+
+# Test Strategy:
+Test presence updates across multiple connected clients. Verify internal comments never appear in customer responses. Test @mention notifications reach intended recipients. Validate collision detection prevents data loss. Test real-time updates with network interruptions.
+
+# Subtasks:
+## 1. Set up Supabase Realtime Infrastructure and Presence System [pending]
+### Dependencies: None
+### Description: Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time
+### Details:
+Create presence table schema with user_id, status, last_seen fields. Set up Supabase Realtime subscriptions for presence updates. Implement presence state management with automatic timeout handling for disconnections. Create presence API endpoints for status updates. Build presence indicator UI components showing colored dots/badges for different states.
+
+## 2. Build Internal Comments System with Visibility Controls [pending]
+### Dependencies: 8.1
+### Description: Implement a commenting system that allows agents to add internal notes on tickets that are hidden from customers
+### Details:
+Design comments table with ticket_id, user_id, content, is_internal flag, and timestamps. Create comment API endpoints with authorization checks for internal visibility. Build comment UI components with visual distinction for internal comments. Implement comment threading and editing capabilities. Add comment permissions based on user roles.
+
+## 3. Implement @Mentions System with Autocomplete [pending]
+### Dependencies: 8.2
+### Description: Create a mention system that allows agents to tag other team members in comments and ticket descriptions with autocomplete functionality
+### Details:
+Build mention parser to detect @username patterns in text. Create autocomplete API endpoint that searches active users. Implement frontend autocomplete dropdown component triggered by @ character. Store mentions in a separate table for efficient querying. Add mention highlighting in rendered text. Create mention extraction utility for notification triggers.
+
+## 4. Implement Collision Detection and Typing Indicators [pending]
+### Dependencies: 8.1
+### Description: Build optimistic locking mechanism to prevent conflicting edits and add real-time typing indicators for collaboration awareness
+### Details:
+Add version/updated_at fields to tickets for optimistic locking. Implement conflict detection on save with retry logic. Create typing indicator channels in Supabase Realtime. Build typing indicator UI showing who is currently editing. Implement debounced typing events to reduce network traffic. Add visual warnings when conflicts are detected.
+
+## 5. Create Activity Feed and Notification System [pending]
+### Dependencies: 8.3, 8.4
+### Description: Build a real-time activity feed showing ticket history and implement a comprehensive notification system with in-app and email delivery
+### Details:
+Design activity log table tracking all ticket events and agent actions. Create activity feed API with pagination and filtering. Build real-time activity feed UI component with live updates. Implement notification preferences table for user settings. Create notification queue system for reliable delivery. Build in-app notification dropdown with unread counts. Integrate email notification service for important events.
+
