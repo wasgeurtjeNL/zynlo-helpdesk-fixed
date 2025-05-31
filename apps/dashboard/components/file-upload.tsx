@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Upload, X, File, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { 
   uploadFile, 
   formatFileSize, 

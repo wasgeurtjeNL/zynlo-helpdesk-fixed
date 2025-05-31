@@ -14,7 +14,7 @@ import Underline from '@tiptap/extension-underline'
 import { Color } from '@tiptap/extension-color'
 import TextStyle from '@tiptap/extension-text-style'
 import FontFamily from '@tiptap/extension-font-family'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { 
   Bold, 
   Italic, 

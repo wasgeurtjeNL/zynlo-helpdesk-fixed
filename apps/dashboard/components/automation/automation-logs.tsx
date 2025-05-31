@@ -12,7 +12,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { Button, Card } from '@zynlo/ui'
+import { Button, Card } from '@/lib/ui'
 import { useAutomationLogs } from '@zynlo/supabase'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'

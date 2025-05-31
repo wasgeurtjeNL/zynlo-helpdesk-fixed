@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChannelsList } from '@/components/channels-list'
+import { ChannelsList } from '@/components'
 import { Search, Filter, Plus } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import Link from 'next/link'
 
 export default function KanalenPage() {

@@ -12,7 +12,7 @@ import {
   Mail,
   AlertCircle
 } from 'lucide-react'
-import { Button, Card } from '@zynlo/ui'
+import { Button, Card } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 
 interface Template {

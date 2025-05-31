@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Mail, Save, TestTube, Shield, Info } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'

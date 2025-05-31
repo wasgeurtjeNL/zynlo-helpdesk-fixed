@@ -18,7 +18,7 @@ import {
   Play,
   Copy
 } from 'lucide-react'
-import { Button, Card } from '@zynlo/ui'
+import { Button, Card } from '@/lib/ui'
 import { 
   useAutomationRules, 
   useDeleteAutomationRule, 

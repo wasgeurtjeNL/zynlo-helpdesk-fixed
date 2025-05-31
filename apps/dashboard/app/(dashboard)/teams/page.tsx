@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, Users, Settings, Trash2, Edit2, ChevronRight } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { useTeams, useCreateTeam, useUpdateTeam, useDeleteTeam } from '@zynlo/supabase'
 import { useRouter } from 'next/navigation'
 

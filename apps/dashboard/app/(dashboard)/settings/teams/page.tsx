@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowLeft, Users, Plus, Settings, Clock, Bell, Shield, Calendar } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import Link from 'next/link'
 import { useTeams, useCreateTeam, useUpdateTeam, useDeleteTeam } from '@zynlo/supabase'
 import { showToast } from '@/components/toast'

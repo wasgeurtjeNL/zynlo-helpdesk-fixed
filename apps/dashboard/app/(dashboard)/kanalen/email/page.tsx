@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowLeft, Mail, Plus, Settings, Trash2, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, useUser } from '@zynlo/supabase'

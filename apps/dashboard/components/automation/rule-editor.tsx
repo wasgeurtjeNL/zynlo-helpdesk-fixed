@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Zap
 } from 'lucide-react'
-import { Button, Card } from '@zynlo/ui'
+import { Button, Card } from '@/lib/ui'
 import { 
   useCreateAutomationRule,
   useUpdateAutomationRule,

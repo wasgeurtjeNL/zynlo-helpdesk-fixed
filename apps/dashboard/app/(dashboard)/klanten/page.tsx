@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, Search, Mail, Phone, User, Ticket } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@zynlo/supabase'
 import { useRouter } from 'next/navigation'

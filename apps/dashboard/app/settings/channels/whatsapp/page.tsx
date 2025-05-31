@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import { 
   Smartphone, 
   MessageSquare, 

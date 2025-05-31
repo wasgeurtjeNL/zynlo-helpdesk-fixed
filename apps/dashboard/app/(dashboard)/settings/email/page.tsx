@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowLeft } from 'lucide-react'
-import { Button } from '@zynlo/ui'
+import { Button } from '@/lib/ui'
 import Link from 'next/link'
 
 export default function EmailSettingsPage() {
