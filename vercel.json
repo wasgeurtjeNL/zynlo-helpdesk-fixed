@@ -1,0 +1,7 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "apps/dashboard/.next",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet ."
+} 
