@@ -1,0 +1,69 @@
+# Vercel Ignore File
+# Dit bestand zorgt ervoor dat bepaalde files/directories niet naar Vercel worden geupload
+
+# Development en test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/tests
+**/test
+**/__tests__
+**/__mocks__
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Git
+.git
+.gitignore
+
+# Dependencies - deze worden opnieuw geïnstalleerd
+**/node_modules
+
+# Build outputs - deze worden opnieuw gegenereerd
+**/.next
+**/dist
+**/build
+**/.turbo
+
+# Development configuratie
+.env.local
+.env.development
+.env.test
+docker-compose.yml
+.husky
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Misc
+.eslintcache
+.stylelintcache
+coverage
+.nyc_output
+
+# BELANGRIJK: Zorg ervoor dat deze NIET worden genegeerd
+!tsconfig.json
+!turbo.json
+!package.json
+!pnpm-workspace.yaml
+!vercel.json
+!apps/dashboard/tsconfig.json
+!apps/dashboard/next.config.js 
