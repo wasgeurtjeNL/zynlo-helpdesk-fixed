@@ -4,12 +4,23 @@ import { cookies } from 'next/headers';
 import OpenAI from 'openai';
 
 // Initialize OpenAI with API key from environment
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// Make it optional during build time
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  : null;
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      return NextResponse.json(
+        { error: 'AI service is not configured' },
+        { status: 503 }
+      );
+    }
+
     // Initialize Supabase client with user's auth
     const cookieStore = cookies();
     const accessToken = cookieStore.get('sb-nkrytssezaefinbjgwnq-auth-token')?.value;
