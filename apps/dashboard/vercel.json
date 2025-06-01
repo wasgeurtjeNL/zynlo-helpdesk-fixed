@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@zynlo/dashboard",
-  "installCommand": "cd ../.. && pnpm install",
-  "outputDirectory": ".next"
-} 
