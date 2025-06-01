@@ -1,5 +1,6 @@
 {
-  "buildCommand": "turbo run build --filter=@zynlo/dashboard",
+  "buildCommand": "cd apps/dashboard && pnpm build",
   "installCommand": "pnpm install",
-  "outputDirectory": "apps/dashboard/.next"
+  "outputDirectory": "apps/dashboard/.next",
+  "framework": "nextjs"
 } 
