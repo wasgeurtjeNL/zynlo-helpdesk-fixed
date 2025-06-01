@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "cd ../.. && npm pack packages/supabase packages/ui packages/utils && cd apps/dashboard && npm install ../../zynlo-supabase-1.0.0.tgz ../../zynlo-ui-1.0.0.tgz ../../zynlo-utils-1.0.0.tgz && npm run build",
-  "installCommand": "npm install --no-package-lock",
-  "outputDirectory": ".next"
-} 

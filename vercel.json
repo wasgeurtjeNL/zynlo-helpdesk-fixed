@@ -1,7 +1,13 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm build",
+  "buildCommand": "turbo run build --filter=@zynlo/dashboard",
+  "installCommand": "pnpm install",
   "outputDirectory": "apps/dashboard/.next",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet ."
+  "devCommand": "pnpm dev",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/apps/dashboard/$1"
+    }
+  ]
 } 
