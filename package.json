@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "Modern ticketsysteem geïnspireerd door Trengo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo run dev",
     "dev:dashboard": "pnpm -F dashboard dev",

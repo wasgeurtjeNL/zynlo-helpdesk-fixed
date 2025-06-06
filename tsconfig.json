@@ -19,7 +19,12 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@zynlo/ui": ["packages/ui/src/index.ts"], // or ["packages/ui/src"] if you want to import submodules
+      "@zynlo/ui/*": ["packages/ui/src/*"]
+    }
   },
   "exclude": ["node_modules", "dist", "build", ".next", "out"]
-} 
+}
