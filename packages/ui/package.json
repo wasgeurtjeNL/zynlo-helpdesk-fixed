@@ -14,6 +14,7 @@
     "./styles/globals.css": "./src/styles/globals.css"
   },
   "scripts": {
+    "prepack": "tsup",
     "build": "tsup",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",

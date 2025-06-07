@@ -1,18 +1,16 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   transpilePackages: ['@zynlo/ui', '@zynlo/supabase', '@zynlo/utils'],
+  experimental: {
+    externalDir: true, // ✅ Important in monorepos
+  },
   typescript: {
-    // !! WAARSCHUWING !!
-    // Tijdelijk TypeScript errors negeren tijdens build
-    // Dit moet worden opgelost door de database types te updaten
-    ignoreBuildErrors: true
+    ignoreBuildErrors: true,
   },
   eslint: {
-    // Tijdens productie build eslint warnings negeren
-    ignoreDuringBuilds: true
-  }
-}
+    ignoreDuringBuilds: true,
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;

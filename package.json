@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "description": "Modern ticketsysteem geïnspireerd door Trengo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
+    "postinstall": "pnpm --filter @zynlo/ui... build",
     "dev": "turbo run dev",
     "dev:dashboard": "pnpm -F dashboard dev",
     "dev:api": "pnpm -F api-server dev",
     "dev:clean": "pnpm clean && pnpm dev",
-    "build": "turbo run build",
+    "build": "pnpm --filter @zynlo/ui... build && pnpm --filter @zynlo/helpdesk build",
     "start": "turbo run start",
     "restart": "pnpm build && pnpm start",
     "clean": "pnpm -r clean && rimraf node_modules/.cache",

@@ -33,7 +33,7 @@
     "@tiptap/react": "^2.12.0",
     "@tiptap/starter-kit": "^2.12.0",
     "@zynlo/supabase": "workspace:*",
-    "@zynlo/ui": "workspace:*",
+    "@zynlo/ui": "*",
     "@zynlo/utils": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
