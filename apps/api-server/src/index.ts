@@ -1,13 +1,13 @@
 import dotenv from 'dotenv'
 import path from 'path'
+import express from 'express'
+import cors from 'cors'
+import * as cron from 'node-cron'
+import { supabase } from './lib/supabase'
 
 // Load environment variables FIRST, before any other imports
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
-
-import express from 'express'
-import cors from 'cors'
-import * as cron from 'node-cron'
 
 // Import routes
 import gmailAuthRoutes from '../routes/auth/gmail'
@@ -22,10 +22,31 @@ import { emailPoller } from './services/email-poller'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// CORS Configuration
+const allowedOrigins = [
+  'https://zynlo-helpdesk-fixed-dashboard.vercel.app',
+  'https://zynlo-helpdesk-fixed-dashboard-64a0q5zil-wasgeurtjes-projects.vercel.app',
+  'http://localhost:3000' // For local development
+];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+app.use(cors(corsOptions));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/auth/gmail', gmailAuthRoutes)

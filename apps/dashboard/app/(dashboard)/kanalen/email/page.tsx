@@ -6,6 +6,7 @@ import { Button } from '@/lib/ui'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, useUser } from '@zynlo/supabase'
+import { useToast } from '@/components/toast'
 
 export default function EmailChannelsPage() {
   const router = useRouter()
@@ -13,9 +14,10 @@ export default function EmailChannelsPage() {
   const { user } = useUser()
   const [isAddingChannel, setIsAddingChannel] = useState(false)
   const [channelName, setChannelName] = useState('')
+  const { toast } = useToast()
 
   // Fetch email channels
-  const { data: channels, isLoading } = useQuery({
+  const { data: channels, isLoading, error } = useQuery({
     queryKey: ['email-channels'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -76,47 +78,41 @@ export default function EmailChannelsPage() {
     window.location.href = `${apiUrl}/auth/gmail/connect?${params.toString()}`
   }
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
+  if (!apiUrl) {
+    console.error("Fatal: NEXT_PUBLIC_API_URL is not set. Cannot perform API calls.")
+    // Optionally, you could show a persistent error message to the user.
+  }
+
   const syncEmails = async (channelId: string) => {
+    if (!apiUrl) {
+      toast({
+        title: 'Configuratie Fout',
+        description: 'De API URL is niet ingesteld. Synchronisatie is onmogelijk.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-      
-      // First try the configured URL
-      let response;
-      try {
-        response = await fetch(`${apiUrl}/sync/gmail/${channelId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
-      } catch (error) {
-        // If localhost fails on Windows, try 127.0.0.1
-        if (apiUrl.includes('localhost')) {
-          console.log('Localhost failed, trying 127.0.0.1...')
-          const altUrl = apiUrl.replace('localhost', '127.0.0.1')
-          response = await fetch(`${altUrl}/sync/gmail/${channelId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          })
-        } else {
-          throw error
-        }
+      const response = await fetch(`${apiUrl}/sync/gmail/${channelId}`, {
+        method: 'POST',
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Onbekende fout')
       }
-      
-      if (response.ok) {
-        const result = await response.json()
-        alert(`Email sync gestart. ${result.processed || 0} nieuwe emails gevonden.`)
-        queryClient.invalidateQueries({ queryKey: ['email-channels'] })
-      } else {
-        const errorText = await response.text()
-        console.error('Sync response error:', errorText)
-        alert('Email sync mislukt: ' + (errorText || response.statusText))
-      }
-    } catch (error) {
-      console.error('Sync error:', error)
-      alert('Email sync mislukt: ' + (error instanceof Error ? error.message : 'Onbekende fout'))
+      toast({
+        title: 'Sync Gestart',
+        description: 'E-mails worden op de achtergrond gesynchroniseerd.',
+      })
+    } catch (err: any) {
+      console.error('Email sync failed:', err)
+      toast({
+        title: 'Email sync mislukt',
+        description: err.message || 'Kon geen verbinding maken met de server.',
+        variant: 'destructive',
+      })
     }
   }
 

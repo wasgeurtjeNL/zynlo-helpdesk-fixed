@@ -1,0 +1,39 @@
+# BELANGRIJKE VERCEL ENVIRONMENT VARIABLES
+# 
+# Ga naar: https://vercel.com/wasgeurtjes-projects/zynlo-helpdesk/settings/environment-variables
+# En voeg deze variabelen toe:
+
+# ============================================
+# SUPABASE (VERPLICHT!)
+# ============================================
+NEXT_PUBLIC_SUPABASE_URL=https://nkrytssezaefinbjgwnq.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[VOEG JE ANON KEY HIER TOE]
+SUPABASE_SERVICE_ROLE_KEY=[VOEG JE SERVICE ROLE KEY HIER TOE]
+
+# ============================================
+# AUTHENTICATION (VERPLICHT!)
+# ============================================
+NEXTAUTH_URL=https://zynlo-helpdesk.vercel.app
+NEXTAUTH_SECRET=[GENEREER EEN RANDOM STRING]
+
+# ============================================
+# GOOGLE OAUTH (OPTIONEEL)
+# ============================================
+GOOGLE_CLIENT_ID=[JE GOOGLE CLIENT ID]
+GOOGLE_CLIENT_SECRET=[JE GOOGLE CLIENT SECRET]
+
+# ============================================
+# OPENAI (OPTIONEEL - voor AI features)
+# ============================================
+OPENAI_API_KEY=[JE OPENAI API KEY]
+
+# ============================================
+# EMAIL (OPTIONEEL)
+# ============================================
+EMAIL_WEBHOOK_SECRET=[JE WEBHOOK SECRET]
+
+# ============================================
+# DATABASE URLs (OPTIONEEL)
+# ============================================
+POSTGRES_URL=[JE POSTGRES URL]
+POSTGRES_URL_NON_POOLING=[JE NON-POOLING URL] 
