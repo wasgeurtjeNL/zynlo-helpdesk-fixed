@@ -42,9 +42,10 @@ export async function POST(
     const { error: updateError } = await supabase
       .from('channels')
       .update({ 
+        last_sync: new Date().toISOString(),
         settings: {
           ...channel.settings,
-          last_sync: new Date().toISOString()
+          sync_count: (channel.settings?.sync_count || 0) + 1
         }
       })
       .eq('id', channelId)
@@ -53,17 +54,27 @@ export async function POST(
       console.error('Update error:', updateError)
     }
     
-    // TODO: Implement real Gmail API sync here
-    // For now, simulate processing
-    const mockEmailsFound = Math.floor(Math.random() * 5) + 1
+    // 🚧 MOCK IMPLEMENTATION - TODO: Replace with real Gmail API
+    // This currently simulates email sync for development/testing
+    console.log('🚧 Using MOCK Gmail sync - no real emails fetched')
+    
+    // For now, return consistent mock data to avoid confusion
+    const mockResult = {
+      newEmails: 0,
+      existingEmails: 0,
+      errors: 0,
+      status: 'mock_sync_completed'
+    }
     
     return NextResponse.json({ 
       success: true, 
-      message: `Gmail sync voltooid voor ${channel.name}`,
+      message: `🚧 MOCK: Sync test voltooid voor ${channel.name}`,
+      note: "Dit is test data - nog geen echte Gmail integratie",
       channelId,
       channelName: channel.name,
-      processed: mockEmailsFound,
-      lastSync: new Date().toISOString()
+      result: mockResult,
+      lastSync: new Date().toISOString(),
+      implementation_status: "mock"
     })
   } catch (error) {
     console.error('Gmail sync error:', error)

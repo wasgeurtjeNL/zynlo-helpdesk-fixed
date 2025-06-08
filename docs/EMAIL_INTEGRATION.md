@@ -2,16 +2,46 @@
 
 Deze guide helpt je bij het opzetten van de Gmail integratie voor het Zynlo Helpdesk systeem.
 
-## Overzicht
+## 🚀 Huidige Status (December 2024)
 
-De email integratie maakt het mogelijk om:
-- Emails automatisch om te zetten naar tickets
-- Antwoorden op tickets als email te versturen
-- Email threads te koppelen aan bestaande tickets
-- Meerdere email accounts te beheren
+### ✅ **Geïmplementeerd & Werkend:**
+- Gmail OAuth flow (connect/callback)
+- Database integratie voor kanalen
+- UI feedback met Sonner toasts
+- Sync API endpoint met database updates
+- Responsive frontend in Next.js
+- Vercel deployment ready
+
+### ⚠️ **Gedeeltelijk Werkend:**
+- Sync functie (mock implementatie - toont feedback maar haalt nog geen echte emails op)
+- OAuth callback (redirect werkt, maar slaat nog geen tokens op)
+
+### ❌ **Nog Te Implementeren:**
+- Echte Gmail API integratie (emails ophalen)
+- Token opslag in database
+- Automatische email-naar-ticket conversie
+- Email replies versturen
+- Attachment handling
 
 ## Architectuur
 
+### **Nieuwe Architectuur (Current)**
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│   Gmail     │────▶│    Next.js       │────▶│  Supabase   │
+│   Account   │     │  API Routes      │     │  Database   │
+└─────────────┘     │ /api/auth/gmail/ │     └─────────────┘
+                    │ /api/sync/gmail/ │
+                    └──────────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │  Dashboard   │
+                    │  (Same App)  │
+                    └──────────────┘
+```
+
+### **Oude Architectuur (Deprecated)**
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
 │   Gmail     │────▶│  API Server  │────▶│  Supabase   │
@@ -43,51 +73,45 @@ De email integratie maakt het mogelijk om:
    - **Name**: Zynlo Helpdesk
    - **Authorized JavaScript origins**: 
      - `http://localhost:3000` (development)
-     - `https://jouw-domein.com` (production)
+     - `https://your-vercel-app.vercel.app` (production)
    - **Authorized redirect URIs**:
-     - `http://localhost:3001/auth/gmail/callback` (development)
-     - `https://api.jouw-domein.com/auth/gmail/callback` (production)
+     - `http://localhost:3000/api/auth/gmail/callback` (development)
+     - `https://your-vercel-app.vercel.app/api/auth/gmail/callback` (production)
 5. Kopieer de Client ID en Client Secret
 
 ## Stap 3: Environment Variables
 
-Voeg de volgende variabelen toe aan je `.env.local` bestanden:
-
-### Dashboard (`apps/dashboard/.env.local`):
+### **Vercel Production:**
+In Vercel project settings > Environment Variables:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
-### API Server (`apps/api-server/.env`):
-```env
-# Server
-PORT=3001
-API_URL=http://localhost:3001
-DASHBOARD_URL=http://localhost:3000
-
-# Supabase
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-## Stap 4: API Server Starten
-
-1. Installeer dependencies:
-```bash
-cd apps/api-server
-pnpm install
+### **Local Development:**
+In `apps/dashboard/.env.local`:
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-2. Start de server:
+## Stap 4: Deployment & Testing
+
+### **Development:**
 ```bash
+cd apps/dashboard
 pnpm dev
 ```
+App draait op `http://localhost:3000`
 
-De API server draait nu op `http://localhost:3001`
+### **Production:**
+- Push naar GitHub
+- Vercel deployt automatisch
+- Controleer environment variables in Vercel dashboard
 
 ## Stap 5: Email Kanaal Toevoegen
 
@@ -98,58 +122,116 @@ De API server draait nu op `http://localhost:3001`
 5. Log in met je Google account en geef toestemming
 6. Je wordt teruggeleid naar de dashboard
 
-## Hoe het werkt
+## API Endpoints (Next.js Routes)
 
-### Email naar Ticket Flow
+### **OAuth Flow:**
+- `GET /api/auth/gmail/connect` - Start OAuth flow
+- `GET /api/auth/gmail/callback` - Handle OAuth callback
 
-1. **Email ontvangen**: Gmail ontvangt een email
-2. **Sync proces**: De API server haalt nieuwe emails op (elke 5 minuten)
-3. **Webhook verwerking**: Email wordt naar Supabase Edge Function gestuurd
-4. **Ticket creatie**: 
-   - Nieuwe klant wordt aangemaakt (indien nodig)
-   - Ticket wordt aangemaakt met eerste bericht
-   - Of bericht wordt toegevoegd aan bestaand ticket (bij reply)
-5. **Dashboard update**: Nieuwe ticket verschijnt in de inbox
+### **Sync Operations:**
+- `POST /api/sync/gmail/[channelId]` - Trigger manual sync
 
-### Reply Detection
+## Hoe het werkt (Current Implementation)
 
-Het systeem herkent replies op basis van:
-- Email headers (`In-Reply-To`, `References`)
-- Ticket nummer in subject (bijv. `[Ticket #123]`)
+### **OAuth Flow (✅ Working):**
+1. User klikt "Gmail" in add channel dialog
+2. Redirect naar Google OAuth met correct callback URL
+3. User authorizes access
+4. Google redirects to `/api/auth/gmail/callback`
+5. Callback route handles response and redirects to email channels page
 
-### Automatische Sync
+### **Sync Process (⚠️ Mock Implementation):**
+1. User klikt sync button (🔄)
+2. Frontend calls `/api/sync/gmail/[channelId]`
+3. API route:
+   - Fetches channel info from database
+   - Updates `last_sync` timestamp
+   - Returns mock success response
+4. Frontend shows Sonner toast with feedback
+5. Channel list refreshes to show updated sync time
 
-- Emails worden elke 5 minuten gesynchroniseerd
-- Handmatige sync mogelijk via "Sync" knop
-- Laatste sync tijd wordt getoond per kanaal
+### **Next Steps for Full Implementation:**
+1. **Token Storage:** Store OAuth tokens in database after callback
+2. **Gmail API Integration:** Use stored tokens to fetch emails
+3. **Email Processing:** Convert emails to tickets/messages
+4. **Reply Functionality:** Send ticket replies as emails
+
+## File Structure
+
+```
+apps/dashboard/
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   │   └── gmail/
+│   │   │       ├── connect/
+│   │   │       │   └── route.ts     # OAuth initiation
+│   │   │       └── callback/
+│   │   │           └── route.ts     # OAuth callback handler
+│   │   └── sync/
+│   │       └── gmail/
+│   │           └── [channelId]/
+│   │               └── route.ts     # Manual sync trigger
+│   └── (dashboard)/
+│       └── kanalen/
+│           └── email/
+│               └── page.tsx         # Email channels UI
+```
 
 ## Troubleshooting
 
-### "Authentication failed"
-- Controleer of de Google OAuth credentials correct zijn
-- Zorg dat de redirect URI exact overeenkomt
+### **OAuth Issues:**
+- **"Invalid redirect URI"**: Check Google Console redirect URIs exactly match your URLs
+- **"Client ID not found"**: Verify `GOOGLE_CLIENT_ID` environment variable
+- **Stuck on callback**: Check browser console for JavaScript errors
 
-### Emails worden niet gesynchroniseerd
-- Check of het kanaal actief is
-- Controleer de API server logs
-- Verifieer dat de Gmail API geactiveerd is
+### **Sync Issues:**
+- **No toast appears**: Check browser console, might be Sonner configuration issue
+- **API errors**: Check Vercel function logs in dashboard
+- **Database errors**: Verify Supabase credentials and RLS policies
 
-### Dubbele tickets
-- Het systeem gebruikt message IDs om duplicaten te voorkomen
-- Check de `webhook_logs` tabel voor processing errors
+### **Common Fixes:**
+- Clear browser cache and cookies
+- Verify all environment variables are set in Vercel
+- Check Supabase RLS policies allow operations
+- Ensure proper CORS headers (handled by Next.js)
 
-## Security Best Practices
+## Security Status
 
-1. **Service Account**: Overweeg een Google Service Account voor productie
-2. **Scope beperking**: Gebruik alleen benodigde Gmail scopes
-3. **Token opslag**: OAuth tokens worden encrypted opgeslagen
-4. **Rate limiting**: Implementeer rate limiting op sync endpoints
-5. **Webhook verificatie**: Valideer webhook signatures
+### **Current Security Measures:**
+- OAuth 2.0 with PKCE flow
+- HTTPS-only in production
+- Environment variables for secrets
+- Supabase RLS policies
 
-## Volgende stappen
+### **Security TODOs:**
+- Encrypt stored OAuth tokens
+- Implement token refresh logic
+- Add webhook signature verification
+- Rate limiting on sync endpoints
 
-- [ ] Outlook/Office 365 integratie toevoegen
-- [ ] IMAP/SMTP support voor andere providers
-- [ ] Email templates voor antwoorden
-- [ ] Automatische categorisatie met AI
-- [ ] Attachment handling verbeteren 
+## Development Roadmap
+
+### **Phase 1 - Foundation (✅ Complete)**
+- [x] Next.js API routes setup
+- [x] OAuth flow implementation
+- [x] Database integration
+- [x] Basic UI with feedback
+
+### **Phase 2 - Core Functionality (🚧 In Progress)**
+- [ ] Store OAuth tokens securely
+- [ ] Implement Gmail API client
+- [ ] Email fetching functionality
+- [ ] Basic email-to-ticket conversion
+
+### **Phase 3 - Advanced Features**
+- [ ] Email reply functionality
+- [ ] Attachment handling
+- [ ] Thread detection
+- [ ] Automated sync scheduling
+
+### **Phase 4 - Polish**
+- [ ] Outlook/Office 365 support
+- [ ] IMAP/SMTP fallback
+- [ ] Email templates
+- [ ] Advanced filtering 

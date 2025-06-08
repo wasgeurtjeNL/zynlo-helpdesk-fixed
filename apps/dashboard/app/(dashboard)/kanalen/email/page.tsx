@@ -87,10 +87,18 @@ export default function EmailChannelsPage() {
         throw new Error(result.error || 'Onbekende fout')
       }
       
-      // Use sonner toast instead of custom toast
-      toast.success(`${result.message}`, {
-        description: `${result.processed} emails verwerkt`,
-      })
+      // Show appropriate message based on implementation status
+      if (result.implementation_status === 'mock') {
+        toast.success(result.message, {
+          description: result.note,
+          duration: 5000,
+        })
+      } else {
+        // For future real implementation
+        toast.success(result.message, {
+          description: `${result.result?.newEmails || 0} nieuwe emails gevonden`,
+        })
+      }
       
       // Refresh the channels list to show updated sync time
       queryClient.invalidateQueries({ queryKey: ['email-channels'] })
@@ -259,9 +267,14 @@ export default function EmailChannelsPage() {
                           )}
                           {channel.is_active ? 'Actief' : 'Inactief'}
                         </span>
-                        {(channel.settings as any)?.last_sync && (
+                        {channel.last_sync && (
                           <span className="text-xs text-gray-500">
-                            Laatste sync: {new Date((channel.settings as any).last_sync).toLocaleString('nl-NL')}
+                            Laatste sync: {new Date(channel.last_sync).toLocaleString('nl-NL')}
+                          </span>
+                        )}
+                        {(channel.settings as any)?.sync_count && (
+                          <span className="text-xs text-gray-400">
+                            • {(channel.settings as any).sync_count} test syncs
                           </span>
                         )}
                       </div>

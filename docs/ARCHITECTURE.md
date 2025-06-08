@@ -3,279 +3,318 @@
 ## 🏗️ System Architecture
 
 ### Overview
-Zynlo Helpdesk is built as a modern, scalable ticketing system using a microservices architecture with the following key components:
+Zynlo Helpdesk is built as a modern, scalable ticketing system using a **Next.js full-stack architecture** with integrated API routes and Supabase backend services.
 
+### **Current Architecture (December 2024)**
 ```mermaid
 graph TB
-    subgraph "Frontend"
-        A[Next.js Dashboard]
-        B[Chat Widget]
-    end
-    
-    subgraph "API Layer"
-        C[API Server]
-        D[Webhook Handlers]
+    subgraph "Frontend & API"
+        A[Next.js App Router]
+        B[API Routes]
+        C[Chat Widget]
     end
     
     subgraph "Backend Services"
-        E[Supabase Auth]
-        F[PostgreSQL DB]
-        G[Realtime]
-        H[Edge Functions]
-        I[Storage]
+        D[Supabase Auth]
+        E[PostgreSQL DB]
+        F[Realtime]
+        G[Edge Functions]
+        H[Storage]
     end
     
     subgraph "External Services"
-        J[Email Provider]
-        K[WhatsApp API]
-        L[OpenAI]
+        I[Gmail API]
+        J[WhatsApp API]
+        K[OpenAI]
     end
     
-    subgraph "Queue/Cache"
-        M[Redis]
-        N[BullMQ]
+    subgraph "Deployment"
+        L[Vercel Platform]
+        M[Serverless Functions]
     end
     
-    A --> C
-    B --> C
-    C --> F
-    C --> M
-    D --> N
-    N --> H
-    H --> F
-    H --> L
-    J --> D
-    K --> D
+    A --> B
+    B --> E
+    B --> D
+    C --> B
+    G --> E
+    G --> K
+    I --> B
+    J --> B
+    L --> A
+    L --> M
+    M --> B
 ```
 
 ## 📦 Technology Stack
 
-### Frontend
-- **Framework**: Next.js 14 (App Router)
+### Frontend & Backend (Unified)
+- **Framework**: Next.js 14 (App Router) - Full-stack
+- **API Layer**: Next.js API Routes (replaces Express.js)
 - **UI Library**: React 18
 - **Styling**: Tailwind CSS
 - **Components**: Radix UI (headless)
-- **State Management**: Zustand / React Context
-- **Data Fetching**: React Query / SWR
+- **State Management**: React Context + useState
+- **Data Fetching**: Native fetch with SWR patterns
 - **Forms**: React Hook Form + Zod
+- **Notifications**: Sonner (Toast library)
 
-### Backend
+### Backend Services
 - **Database**: PostgreSQL (via Supabase)
 - **Auth**: Supabase Auth
 - **Realtime**: Supabase Realtime
-- **API**: Express.js + TypeScript
-- **Queue**: BullMQ (Redis)
 - **Storage**: Supabase Storage
+- **Edge Functions**: Supabase Edge Functions (Deno)
 
 ### Infrastructure
-- **Hosting**: Vercel (Frontend) + Railway/Fly.io (API)
+- **Hosting**: Vercel (Full-stack deployment)
 - **Database**: Supabase Cloud
-- **Monitoring**: Sentry
-- **Analytics**: PostHog / Plausible
+- **Monitoring**: Vercel Analytics
+- **Serverless**: Vercel Functions (Node.js)
 
 ## 🔄 Data Flow
 
-### 1. Incoming Message Flow
+### 1. Incoming Message Flow (Updated)
 ```
-External Channel → Webhook → API Server → Queue → Process → Database → Realtime → UI
-```
-
-### 2. Outgoing Message Flow
-```
-UI → API → Database → Queue → Edge Function → External Service
+External Channel → Next.js API Route → Supabase DB → Realtime → UI
 ```
 
-### 3. Authentication Flow
+### 2. OAuth Flow (Gmail Integration)
 ```
-User → Next.js → Supabase Auth → JWT → API Validation
+UI → /api/auth/gmail/connect → Google OAuth → /api/auth/gmail/callback → Dashboard
+```
+
+### 3. Sync Flow
+```
+UI → /api/sync/gmail/[channelId] → Database Update → Toast Feedback → UI Refresh
+```
+
+### 4. Authentication Flow
+```
+User → Next.js Auth → Supabase Auth → JWT → API Route Validation
 ```
 
 ## 🗄️ Database Schema
 
-### Core Tables
-- `users` - System users (agents, admins)
+### Core Tables (Current)
+- `channels` - Email/communication channels
+  - `id, name, type, provider, settings, last_sync, created_at`
+- `users` - System users (agents, admins)  
 - `customers` - Customer profiles
-- `teams` - Team organization
 - `tickets` - Support tickets
 - `conversations` - Communication threads
 - `messages` - Individual messages
-- `webhook_logs` - Incoming webhook data
 
-### Relationships
+### Current Schema Focus
+The project currently focuses on the **channels** management system:
 ```sql
-tickets >--< conversations >--< messages
-   |              |
-   v              v
-customers      channels
-   |
-   v
-users --> teams
+CREATE TABLE channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  type text NOT NULL, -- 'email', 'whatsapp', 'chat'
+  provider text, -- 'gmail', 'outlook', etc.
+  settings jsonb DEFAULT '{}',
+  last_sync timestamptz,
+  created_at timestamptz DEFAULT NOW(),
+  updated_at timestamptz DEFAULT NOW()
+);
 ```
 
 ## 🔐 Security Architecture
 
-### Authentication & Authorization
-1. **Multi-factor Authentication**: Via Supabase Auth
-2. **Role-Based Access Control (RBAC)**: Admin, Agent, Viewer
-3. **Row Level Security (RLS)**: Database-level security
-4. **API Key Management**: For webhook endpoints
+### Current Implementation
+1. **OAuth 2.0**: Gmail integration with secure tokens
+2. **Environment Variables**: Secrets management via Vercel
+3. **Supabase RLS**: Row Level Security policies
+4. **HTTPS Only**: Vercel enforces SSL
 
-### Data Protection
-1. **Encryption at Rest**: PostgreSQL encryption
-2. **Encryption in Transit**: TLS 1.3
-3. **PII Handling**: GDPR compliant data storage
-4. **Audit Logging**: All actions logged
+### Planned Security
+1. **Token Encryption**: Encrypt stored OAuth tokens
+2. **Rate Limiting**: Implement on sync endpoints
+3. **Webhook Signatures**: Verify incoming webhooks
+4. **RBAC**: Role-based access control
 
 ## 🚀 Deployment Architecture
 
-### Development
+### Current Production Setup
 ```yaml
-Local Development:
-  - Docker Compose for Supabase
-  - Hot reload for all services
-  - Seed data for testing
-```
-
-### Production
-```yaml
-Production:
-  Frontend:
-    - Vercel Edge Network
+Production (Vercel):
+  Application:
+    - Next.js full-stack app
     - Automatic scaling
-    - Global CDN
-  
-  API:
-    - Container-based deployment
-    - Auto-scaling groups
-    - Load balancer
+    - Global edge network
+    - Serverless functions
   
   Database:
     - Supabase managed PostgreSQL
-    - Point-in-time recovery
-    - Read replicas
+    - Automatic backups
+    - Real-time subscriptions
+  
+  Configuration:
+    - Environment variables in Vercel
+    - Automatic deployments from GitHub
+    - Preview deployments for PRs
 ```
 
-## 📊 Performance Considerations
+### Development Environment
+```yaml
+Local Development:
+  - Next.js dev server (localhost:3000)
+  - Supabase local development
+  - Hot reload for all code changes
+  - Environment variables in .env.local
+```
 
-### Caching Strategy
-1. **Redis Cache**: Session data, frequent queries
-2. **Edge Caching**: Static assets, API responses
-3. **Database Caching**: Query result caching
+## 📊 File Structure (Current)
 
-### Optimization Techniques
-1. **Database Indexes**: On foreign keys and search fields
-2. **Connection Pooling**: PgBouncer for database
-3. **Lazy Loading**: Components and routes
-4. **Image Optimization**: Next.js Image component
+```
+zynlo-helpdesk/
+├── apps/
+│   ├── dashboard/                 # Main Next.js application
+│   │   ├── app/
+│   │   │   ├── api/              # API Routes (replaces Express API)
+│   │   │   │   ├── auth/gmail/   # OAuth endpoints
+│   │   │   │   └── sync/gmail/   # Sync functionality
+│   │   │   ├── (dashboard)/      # Dashboard pages
+│   │   │   │   └── kanalen/      # Channels management
+│   │   │   └── layout.tsx        # Root layout
+│   │   ├── components/           # React components
+│   │   ├── lib/                  # Utilities and Supabase client
+│   │   └── package.json
+│   │
+│   └── api-server/               # 🚫 DEPRECATED (not deployed)
+│       └── (legacy code)
+│
+├── packages/
+│   ├── ui/                       # Design system
+│   ├── database/                 # Database utilities
+│   └── shared/                   # Common utilities
+│
+├── supabase/
+│   ├── migrations/               # Database migrations
+│   └── functions/                # Edge functions
+│
+└── docs/                         # Documentation
+```
 
-## 🔄 Scalability Design
+## 🔄 API Routes (Next.js)
 
-### Horizontal Scaling
-- Stateless API servers
-- Queue-based processing
-- Database read replicas
-- CDN for static assets
+### Current Endpoints
+```typescript
+// OAuth Flow
+GET    /api/auth/gmail/connect      // Start OAuth
+GET    /api/auth/gmail/callback     // Handle OAuth callback
 
-### Vertical Scaling
-- Database performance tiers
-- Redis cluster mode
-- Edge function concurrency
+// Channel Management  
+POST   /api/sync/gmail/[channelId]  // Manual sync trigger
+
+// Future Endpoints (Planned)
+GET    /api/channels                // List channels
+POST   /api/channels                // Create channel
+PUT    /api/channels/[id]           // Update channel
+DELETE /api/channels/[id]           // Delete channel
+
+POST   /api/tickets                 // Create ticket
+GET    /api/tickets/[id]            // Get ticket details
+```
+
+## 📈 Current Status & Roadmap
+
+### ✅ **Phase 1 - Infrastructure (Complete)**
+- [x] Next.js 14 full-stack setup
+- [x] Supabase integration
+- [x] Vercel deployment
+- [x] Basic UI with Tailwind
+- [x] Channel management interface
+
+### 🚧 **Phase 2 - Email Integration (In Progress)**
+- [x] OAuth flow implementation
+- [x] Database channel storage
+- [x] UI feedback system
+- [ ] Token storage & management
+- [ ] Gmail API email fetching
+- [ ] Email-to-ticket conversion
+
+### 📋 **Phase 3 - Core Features (Planned)**
+- [ ] Ticket management system
+- [ ] Customer profiles
+- [ ] Agent dashboard
+- [ ] Message threading
+- [ ] Real-time updates
+
+### 🚀 **Phase 4 - Advanced Features (Future)**
+- [ ] WhatsApp integration
+- [ ] AI-powered responses
+- [ ] Analytics dashboard
+- [ ] Mobile responsiveness
+- [ ] Multi-tenant support
 
 ## 🛠️ Development Workflow
 
-### CI/CD Pipeline
+### Current CI/CD
 ```yaml
 1. Code Push → GitHub
-2. Automated Tests → GitHub Actions
-3. Build & Lint → Turbo
-4. Deploy Preview → Vercel
-5. Production Deploy → Manual approval
+2. Automatic Build → Vercel
+3. Preview Deploy → PR environments
+4. Production Deploy → main branch
+5. Environment Variables → Vercel Dashboard
 ```
 
-### Environment Management
-- `development` - Local development
-- `staging` - Pre-production testing
-- `production` - Live environment
+### Key Commands
+```bash
+# Development
+pnpm dev                    # Start dev server
+pnpm build                  # Build for production
+pnpm start                  # Start production server
 
-## 📈 Monitoring & Observability
+# Database
+supabase db push            # Apply migrations
+supabase gen types typescript  # Generate types
+```
 
-### Application Monitoring
-- **Error Tracking**: Sentry
-- **Performance**: Web Vitals
-- **Uptime**: Better Uptime
-- **Logs**: Supabase Logs
+## 🔌 Integration Status
 
-### Business Metrics
-- Response time tracking
-- Ticket resolution metrics
-- Agent performance
-- Customer satisfaction
+### ✅ **Currently Integrated**
+- Gmail OAuth 2.0 authentication
+- Supabase database operations
+- Vercel deployment platform
+- Sonner toast notifications
 
-## 🔌 Integration Points
+### 🚧 **In Development** 
+- Gmail API email fetching
+- Token refresh mechanism
+- Webhook payload processing
 
-### Inbound Integrations
-- Email (SMTP/IMAP)
+### 📋 **Planned Integrations**
 - WhatsApp Business API
-- Web Chat Widget
-- REST API
-
-### Outbound Integrations
-- Email sending (Resend)
-- SMS notifications
+- Outlook/Office 365
 - Slack notifications
-- Webhook events
+- SMS providers
 
 ## 🎯 Design Principles
 
-1. **Modularity**: Loosely coupled services
-2. **Resilience**: Graceful degradation
-3. **Security First**: Defense in depth
-4. **Developer Experience**: Clear APIs and documentation
-5. **User Experience**: Fast, intuitive interface
+1. **Full-Stack Simplicity**: Single Next.js app reduces complexity
+2. **Serverless First**: Leverage Vercel's serverless platform
+3. **Database Driven**: Supabase handles auth, storage, and real-time
+4. **User Experience**: Fast feedback with optimistic updates
+5. **Developer Experience**: Hot reload, TypeScript, clear structure
 
-## 📚 API Design
+## 🔮 Migration Notes
 
-### RESTful Endpoints
-```
-GET    /api/tickets
-POST   /api/tickets
-GET    /api/tickets/:id
-PUT    /api/tickets/:id
-DELETE /api/tickets/:id
+### From Express API to Next.js API Routes
+The project successfully migrated from a separate Express.js API server to Next.js API routes for several reasons:
 
-POST   /api/messages
-GET    /api/conversations/:id/messages
+1. **Simplified Deployment**: Single application instead of two services
+2. **Better DX**: Shared code, types, and utilities
+3. **Vercel Optimization**: Native Next.js support
+4. **Reduced Complexity**: No need for CORS or cross-service communication
 
-POST   /webhooks/email
-POST   /webhooks/whatsapp
-```
-
-### GraphQL (Future)
-```graphql
-type Ticket {
-  id: ID!
-  subject: String!
-  status: TicketStatus!
-  messages: [Message!]!
-  customer: Customer!
-}
-```
-
-## 🔮 Future Considerations
-
-### Planned Enhancements
-1. **AI Integration**: Smart routing, auto-responses
-2. **Mobile Apps**: iOS/Android agent apps
-3. **Advanced Analytics**: ML-based insights
-4. **Multi-tenancy**: White-label solution
-5. **Plugin System**: Third-party integrations
-
-### Technical Debt Management
-- Regular dependency updates
-- Code quality metrics
-- Performance budgets
-- Security audits
+### Key Changes Made:
+- Moved OAuth endpoints from Express to `/app/api/auth/gmail/`
+- Converted sync endpoints to `/app/api/sync/gmail/[channelId]/`
+- Updated frontend to use relative API calls
+- Migrated from separate CORS configuration to Next.js built-in handling
 
 ---
 
-This architecture is designed to be scalable, maintainable, and extensible while providing excellent performance and user experience. 
+This architecture prioritizes simplicity, developer experience, and scalability while leveraging modern full-stack patterns and serverless deployment. 
