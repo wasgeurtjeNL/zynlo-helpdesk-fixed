@@ -51,7 +51,19 @@ export async function GET(request: NextRequest) {
     // Get user info from Gmail API
     oauth2Client.setCredentials(tokens)
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
-    const profile = await gmail.users.getProfile({ userId: 'me' })
+    
+    // Get profile with error handling
+    let profile
+    let emailAddress = 'Unknown'
+    
+    try {
+      profile = await gmail.users.getProfile({ userId: 'me' })
+      emailAddress = profile.data.emailAddress || 'Unknown'
+      console.log(`📧 Gmail profile fetched: ${emailAddress}`)
+    } catch (profileError) {
+      console.error('Failed to fetch Gmail profile:', profileError)
+      // Continue with unknown email address
+    }
     
     // Parse state to get channel info
     let channelName = 'Gmail Account'
@@ -62,6 +74,7 @@ export async function GET(request: NextRequest) {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
         channelName = stateData.channelName || channelName
         userId = stateData.userId
+        console.log(`📝 State parsed: ${channelName} for user ${userId}`)
       } catch (e) {
         console.warn('Could not parse state data:', e)
       }
@@ -75,9 +88,9 @@ export async function GET(request: NextRequest) {
         type: 'email',
         provider: 'gmail',
         settings: {
-          email_address: profile.data.emailAddress,
-          messages_total: profile.data.messagesTotal,
-          threads_total: profile.data.threadsTotal
+          email_address: emailAddress,
+          messages_total: profile?.data.messagesTotal || 0,
+          threads_total: profile?.data.threadsTotal || 0
         },
         is_active: true,
         created_by: userId
@@ -108,7 +121,7 @@ export async function GET(request: NextRequest) {
       // Don't fail the whole flow, but log the error
     }
     
-    console.log(`✅ Gmail OAuth successful for ${profile.data.emailAddress}`)
+    console.log(`✅ Gmail OAuth successful for ${emailAddress}`)
     
     // Redirect back to email channels page with success
     return NextResponse.redirect(
