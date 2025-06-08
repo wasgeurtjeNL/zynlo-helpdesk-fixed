@@ -6,7 +6,7 @@ import { Button } from '@/lib/ui'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, useUser } from '@zynlo/supabase'
-import { useToast } from '@/components/toast'
+import { showToast } from '@/components/toast'
 
 export default function EmailChannelsPage() {
   const router = useRouter()
@@ -14,7 +14,6 @@ export default function EmailChannelsPage() {
   const { user } = useUser()
   const [isAddingChannel, setIsAddingChannel] = useState(false)
   const [channelName, setChannelName] = useState('')
-  const { toast } = useToast()
 
   // Fetch email channels
   const { data: channels, isLoading, error } = useQuery({
@@ -86,11 +85,7 @@ export default function EmailChannelsPage() {
 
   const syncEmails = async (channelId: string) => {
     if (!apiUrl) {
-      toast({
-        title: 'Configuratie Fout',
-        description: 'De API URL is niet ingesteld. Synchronisatie is onmogelijk.',
-        variant: 'destructive',
-      })
+      showToast('error', 'Configuratie Fout', 'De API URL is niet ingesteld. Synchronisatie is onmogelijk.')
       return
     }
 
@@ -102,17 +97,10 @@ export default function EmailChannelsPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Onbekende fout')
       }
-      toast({
-        title: 'Sync Gestart',
-        description: 'E-mails worden op de achtergrond gesynchroniseerd.',
-      })
+      showToast('success', 'Sync Gestart', 'E-mails worden op de achtergrond gesynchroniseerd.')
     } catch (err: any) {
       console.error('Email sync failed:', err)
-      toast({
-        title: 'Email sync mislukt',
-        description: err.message || 'Kon geen verbinding maken met de server.',
-        variant: 'destructive',
-      })
+      showToast('error', 'Email sync mislukt', err.message || 'Kon geen verbinding maken met de server.')
     }
   }
 
