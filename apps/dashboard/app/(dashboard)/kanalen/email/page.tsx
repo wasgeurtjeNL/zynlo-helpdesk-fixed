@@ -6,7 +6,7 @@ import { Button } from '@/lib/ui'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, useUser } from '@zynlo/supabase'
-import { showToast } from '@/components/toast'
+import { toast } from 'sonner'
 
 export default function EmailChannelsPage() {
   const router = useRouter()
@@ -86,10 +86,20 @@ export default function EmailChannelsPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Onbekende fout')
       }
-      showToast('success', 'Sync Gestart', 'E-mails worden op de achtergrond gesynchroniseerd.')
+      
+      // Use sonner toast instead of custom toast
+      toast.success(`${result.message}`, {
+        description: `${result.processed} emails verwerkt`,
+      })
+      
+      // Refresh the channels list to show updated sync time
+      queryClient.invalidateQueries({ queryKey: ['email-channels'] })
+      
     } catch (err: any) {
       console.error('Email sync failed:', err)
-      showToast('error', 'Email sync mislukt', err.message || 'Kon geen verbinding maken met de server.')
+      toast.error('Email sync mislukt', {
+        description: err.message || 'Kon geen verbinding maken met de server.',
+      })
     }
   }
 
