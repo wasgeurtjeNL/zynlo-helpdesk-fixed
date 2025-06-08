@@ -1,9 +1,11 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   transpilePackages: ['@zynlo/ui', '@zynlo/supabase', '@zynlo/utils'],
   experimental: {
     externalDir: true, // ✅ Important in monorepos
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -11,8 +13,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Force standalone output for better Vercel compatibility
-  output: 'standalone',
+  // Disable static optimization for problematic pages
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
+  // Ensure the app directory is used
+  appDir: true,
 };
 
 module.exports = nextConfig;
