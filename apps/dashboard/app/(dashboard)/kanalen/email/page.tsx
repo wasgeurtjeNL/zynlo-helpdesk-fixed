@@ -94,9 +94,11 @@ export default function EmailChannelsPage() {
           duration: 5000,
         })
       } else {
-        // For future real implementation
+        // Live Gmail integration
+        const stats = result.result
         toast.success(result.message, {
-          description: `${result.result?.newEmails || 0} nieuwe emails gevonden`,
+          description: `${stats?.newEmails || 0} nieuwe emails, ${stats?.processed || 0} verwerkt van ${stats?.totalFound || 0} gevonden`,
+          duration: 4000,
         })
       }
       
@@ -274,7 +276,12 @@ export default function EmailChannelsPage() {
                         )}
                         {(channel.settings as any)?.sync_count && (
                           <span className="text-xs text-gray-400">
-                            • {(channel.settings as any).sync_count} test syncs
+                            • {(channel.settings as any).sync_count} syncs
+                          </span>
+                        )}
+                        {(channel.settings as any)?.last_sync_stats && (
+                          <span className="text-xs text-green-600">
+                            • {(channel.settings as any).last_sync_stats.new_emails} nieuwe emails
                           </span>
                         )}
                       </div>

@@ -1,38 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { google } from 'googleapis'
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl
-  const channelName = searchParams.get('channelName')
+  const { searchParams } = new URL(request.url)
+  const channelName = searchParams.get('channelName') || 'Gmail Account'
   const userId = searchParams.get('userId')
   
-  console.log('Gmail OAuth connect requested:', { channelName, userId })
-  
-  // For production, you need to set this up with real Google OAuth
-  const clientId = process.env.GOOGLE_CLIENT_ID
-  const redirectUri = `${request.nextUrl.origin}/api/auth/gmail/callback`
-  
-  if (!clientId) {
-    console.error('GOOGLE_CLIENT_ID not configured')
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.error('Google OAuth credentials not configured')
     return NextResponse.redirect(
-      new URL('/kanalen/email?error=Google+OAuth+niet+geconfigureerd', request.url)
+      new URL('/kanalen/email?error=oauth_not_configured', request.url)
     )
   }
   
-  // Build Google OAuth URL
-  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
-  googleAuthUrl.searchParams.set('client_id', clientId)
-  googleAuthUrl.searchParams.set('redirect_uri', redirectUri)
-  googleAuthUrl.searchParams.set('response_type', 'code')
-  googleAuthUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send')
-  googleAuthUrl.searchParams.set('access_type', 'offline')
-  googleAuthUrl.searchParams.set('prompt', 'consent')
-  
-  // Store channel info in state parameter (you might want to use a more secure method)
-  const state = JSON.stringify({ channelName, userId })
-  googleAuthUrl.searchParams.set('state', state)
-  
-  console.log('Redirecting to Google OAuth:', googleAuthUrl.toString())
-  console.log('Callback URL will be:', redirectUri)
-  
-  return NextResponse.redirect(googleAuthUrl.toString())
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      new URL('/api/auth/gmail/callback', request.url).toString()
+    )
+    
+    // Encode state data safely
+    const stateData = {
+      channelName,
+      userId,
+      timestamp: Date.now()
+    }
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64')
+    
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      prompt: 'consent',
+      state: state
+    })
+    
+    console.log(`🔗 Redirecting to Gmail OAuth for channel: ${channelName}`)
+    return NextResponse.redirect(authUrl)
+    
+  } catch (error) {
+    console.error('Gmail OAuth connect error:', error)
+    return NextResponse.redirect(
+      new URL('/kanalen/email?error=oauth_setup_failed', request.url)
+    )
+  }
 } 
