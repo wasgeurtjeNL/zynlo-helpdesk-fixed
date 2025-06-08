@@ -67,26 +67,19 @@ export default function EmailChannelsPage() {
       return
     }
 
-    // Redirect to API server OAuth endpoint
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    // Redirect to Next.js API route for OAuth
     const params = new URLSearchParams({
       channelName: channelName,
       userId: user?.id || ''
     })
     
-    window.location.href = `${apiUrl}/auth/gmail/connect?${params.toString()}`
-  }
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '' // Use relative URL for same-origin requests
-  if (!process.env.NEXT_PUBLIC_API_URL) {
-    console.log("Using same-origin API requests (no external API URL configured)")
+    window.location.href = `/api/auth/gmail/connect?${params.toString()}`
   }
 
   const syncEmails = async (channelId: string) => {
     try {
-      // Use relative URL if no external API URL is configured
-      const baseUrl = apiUrl || ''
-      const response = await fetch(`${baseUrl}/api/sync/gmail/${channelId}`, {
+      // Always use relative API routes (same origin)
+      const response = await fetch(`/api/sync/gmail/${channelId}`, {
         method: 'POST',
       })
       const result = await response.json()
