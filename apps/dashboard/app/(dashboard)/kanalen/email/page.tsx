@@ -77,20 +77,16 @@ export default function EmailChannelsPage() {
     window.location.href = `${apiUrl}/auth/gmail/connect?${params.toString()}`
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL
-  if (!apiUrl) {
-    console.error("Fatal: NEXT_PUBLIC_API_URL is not set. Cannot perform API calls.")
-    // Optionally, you could show a persistent error message to the user.
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '' // Use relative URL for same-origin requests
+  if (!process.env.NEXT_PUBLIC_API_URL) {
+    console.log("Using same-origin API requests (no external API URL configured)")
   }
 
   const syncEmails = async (channelId: string) => {
-    if (!apiUrl) {
-      showToast('error', 'Configuratie Fout', 'De API URL is niet ingesteld. Synchronisatie is onmogelijk.')
-      return
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/sync/gmail/${channelId}`, {
+      // Use relative URL if no external API URL is configured
+      const baseUrl = apiUrl || ''
+      const response = await fetch(`${baseUrl}/api/sync/gmail/${channelId}`, {
         method: 'POST',
       })
       const result = await response.json()
