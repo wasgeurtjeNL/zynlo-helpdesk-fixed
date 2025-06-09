@@ -227,16 +227,167 @@ export async function POST(
         
         console.log(`📧 Processing: ${emailInfo.subject} from ${emailInfo.from}`)
         
-        // TODO: Convert to ticket/message in database
-        // For now, just count and log
-        processedEmails++
-        
-        // Check if this is a new email (simplified check)
-        const isNewEmail = !fullMessage.data.labelIds?.includes('INBOX') || 
-                          fullMessage.data.labelIds?.includes('UNREAD')
-        
-        if (isNewEmail) {
-          newEmails++
+        // Convert email to ticket/conversation/message in database
+        try {
+          // Extract email address from 'from' header (format: "Name <email@domain.com>" or "email@domain.com")
+          const emailMatch = emailInfo.from.match(/<([^>]+)>/) || emailInfo.from.match(/([^\s<>]+@[^\s<>]+)/);
+          const customerEmail = emailMatch ? emailMatch[1] || emailMatch[0] : emailInfo.from;
+          const customerName = emailInfo.from.replace(/<[^>]+>/, '').trim() || customerEmail;
+
+          console.log(`👤 Customer: ${customerName} (${customerEmail})`);
+
+          // 1. Find or create customer
+          let customer = null;
+          const { data: existingCustomer } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('email', customerEmail)
+            .single();
+
+          if (existingCustomer) {
+            customer = existingCustomer;
+            console.log(`✅ Found existing customer: ${customer.id}`);
+          } else {
+            const { data: newCustomer, error: customerError } = await supabase
+              .from('customers')
+              .insert({
+                email: customerEmail,
+                name: customerName,
+                metadata: {
+                  created_via: 'gmail_sync',
+                  channel_id: channelId
+                }
+              })
+              .select()
+              .single();
+
+            if (customerError) {
+              console.error('❌ Failed to create customer:', customerError);
+              throw customerError;
+            }
+            
+            customer = newCustomer;
+            console.log(`➕ Created new customer: ${customer.id}`);
+          }
+
+          // 2. Check if ticket already exists for this email (based on gmail message ID)
+          const { data: existingTicket } = await supabase
+            .from('tickets')
+            .select(`
+              id, number, subject, status,
+              conversations!inner(
+                id, external_id, metadata
+              )
+            `)
+            .eq('conversations.external_id', emailInfo.messageId)
+            .eq('conversations.channel', 'email')
+            .single();
+
+          if (existingTicket) {
+            console.log(`🎫 Email already processed as ticket #${existingTicket.number}`);
+            processedEmails++;
+            continue; // Skip to next email
+          }
+
+          // 3. Create new ticket
+          const { data: newTicket, error: ticketError } = await supabase
+            .from('tickets')
+            .insert({
+              subject: emailInfo.subject || 'No Subject',
+              description: emailInfo.snippet || '',
+              status: 'new',
+              priority: 'normal',
+              customer_id: customer.id,
+              metadata: {
+                created_via: 'gmail_sync',
+                channel_id: channelId,
+                gmail_message_id: emailInfo.messageId,
+                original_date: emailInfo.date
+              }
+            })
+            .select()
+            .single();
+
+          if (ticketError) {
+            console.error('❌ Failed to create ticket:', ticketError);
+            throw ticketError;
+          }
+
+          console.log(`🎫 Created ticket #${newTicket.number}: ${newTicket.subject}`);
+
+          // 4. Create conversation
+          const { data: conversation, error: conversationError } = await supabase
+            .from('conversations')
+            .insert({
+              ticket_id: newTicket.id,
+              channel: 'email',
+              external_id: emailInfo.messageId,
+              metadata: {
+                gmail_thread_id: fullMessage.data.threadId,
+                labels: fullMessage.data.labelIds || [],
+                channel_id: channelId
+              }
+            })
+            .select()
+            .single();
+
+          if (conversationError) {
+            console.error('❌ Failed to create conversation:', conversationError);
+            throw conversationError;
+          }
+
+          console.log(`💬 Created conversation: ${conversation.id}`);
+
+          // 5. Get email content (basic text extraction)
+          let emailContent = emailInfo.snippet || '';
+          
+          // Try to extract better content from email body
+          if (fullMessage.data.payload?.body?.data) {
+            try {
+              const decodedContent = Buffer.from(fullMessage.data.payload.body.data, 'base64').toString('utf-8');
+              emailContent = decodedContent.substring(0, 10000); // Limit content length
+            } catch (decodeError) {
+              console.warn('Failed to decode email body, using snippet');
+            }
+          }
+
+          // 6. Create message
+          const { data: message, error: messageError } = await supabase
+            .from('messages')
+            .insert({
+              conversation_id: conversation.id,
+              content: emailContent,
+              sender_type: 'customer',
+              sender_id: customer.id,
+              sender_name: customerName,
+              content_type: 'text/html',
+              metadata: {
+                gmail_message_id: emailInfo.messageId,
+                original_date: emailInfo.date,
+                from: emailInfo.from,
+                to: headers.find(h => h.name?.toLowerCase() === 'to')?.value,
+                cc: headers.find(h => h.name?.toLowerCase() === 'cc')?.value,
+                message_size: fullMessage.data.sizeEstimate || 0
+              }
+            })
+            .select()
+            .single();
+
+          if (messageError) {
+            console.error('❌ Failed to create message:', messageError);
+            throw messageError;
+          }
+
+          console.log(`📨 Created message: ${message.id}`);
+          console.log(`✅ Successfully converted email to ticket #${newTicket.number}`);
+
+          newEmails++;
+          processedEmails++;
+
+        } catch (conversionError) {
+          console.error(`❌ Failed to convert email ${emailInfo.messageId}:`, conversionError);
+          errors++;
+          processedEmails++; // Count as processed even if failed
         }
         
       } catch (messageError) {
