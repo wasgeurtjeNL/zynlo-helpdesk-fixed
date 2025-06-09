@@ -34,7 +34,7 @@ export default function EmailChannelDetailPage() {
     queryKey: ['oauth-tokens', channelId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('oauth_tokens')
+        .from('oauth_tokens' as any)
         .select('*')
         .eq('channel_id', channelId)
         .eq('provider', 'gmail')
@@ -69,6 +69,36 @@ export default function EmailChannelDetailPage() {
     } catch (err: any) {
       console.error('Sync error:', err)
       toast.error('Email sync mislukt', {
+        description: err.message,
+      })
+    }
+  }
+
+  const reSyncExistingEmails = async () => {
+    try {
+      toast.info('Re-sync gestart...', {
+        description: 'Bestaande emails worden opnieuw verwerkt met verbeterde content extractie',
+      })
+      
+      const response = await fetch(`/api/sync/gmail/${channelId}/re-sync`, {
+        method: 'POST',
+      })
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Re-sync failed')
+      }
+      
+      const stats = result.result
+      toast.success(result.message, {
+        description: `${stats?.updated || 0} emails bijgewerkt van ${stats?.processed || 0} bestaande emails`,
+      })
+      
+      queryClient.invalidateQueries({ queryKey: ['email-channel', channelId] })
+      
+    } catch (err: any) {
+      console.error('Re-sync error:', err)
+      toast.error('Email re-sync mislukt', {
         description: err.message,
       })
     }
@@ -134,10 +164,16 @@ export default function EmailChannelDetailPage() {
           
           <div className="flex items-center gap-2">
             {hasTokens ? (
-              <Button onClick={syncEmails} className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Sync emails
-              </Button>
+              <>
+                <Button onClick={syncEmails} className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Sync Nu
+                </Button>
+                <Button onClick={reSyncExistingEmails} variant="outline" className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Re-sync Bestaande
+                </Button>
+              </>
             ) : (
               <Button onClick={reconnectGmail} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
