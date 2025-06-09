@@ -34,7 +34,7 @@ export function MessageContent({
   const [isProcessing, setIsProcessing] = useState(true)
   const [processedContent, setProcessedContent] = useState<any>(null)
   const [iframeError, setIframeError] = useState<string | null>(null)
-  const [useIframe, setUseIframe] = useState(true)
+  const [useIframe, setUseIframe] = useState(process.env.NODE_ENV === 'development')
   const [showDebug, setShowDebug] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState(400)
@@ -209,11 +209,11 @@ export function MessageContent({
                 "flex items-center gap-1 px-2 py-1 rounded transition-colors text-xs",
                 useIframe 
                   ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                  : "bg-green-100 text-green-700 hover:bg-green-200"
               )}
-              title={useIframe ? "Switch to fallback" : "Switch to iframe"}
+              title={useIframe ? "Currently using iframe - click to test fallback" : "Currently using fallback - click to test iframe"}
             >
-              <span>{useIframe ? "Test Fallback" : "Test Iframe"}</span>
+              <span>{useIframe ? "Using Iframe" : "Using Fallback"}</span>
             </button>
           </div>
         </div>
@@ -391,17 +391,25 @@ export function MessageContent({
             />
           ) : (
             // Fallback: direct HTML rendering with dangerouslySetInnerHTML
-            <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
-              <div className="text-xs text-yellow-700 mb-2">
-                ⚠️ Using fallback HTML rendering (iframe not available)
-              </div>
+            <div className={cn(
+              "rounded",
+              process.env.NODE_ENV === 'production' 
+                ? "bg-white border" 
+                : "bg-yellow-50 border border-yellow-200"
+            )}>
+              {process.env.NODE_ENV !== 'production' && (
+                <div className="text-xs text-yellow-700 mb-2 p-2">
+                  ⚠️ Using fallback HTML rendering (iframe not available)
+                </div>
+              )}
               <div 
-                className="bg-white p-4 rounded border"
+                className="p-4 rounded"
                 style={{
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                   fontSize: '14px',
                   lineHeight: '1.6',
-                  color: '#333'
+                  color: '#333',
+                  backgroundColor: '#fff'
                 }}
                 dangerouslySetInnerHTML={{ __html: processedContent.content }} 
               />
