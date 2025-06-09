@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { X, Paperclip, Image, Send, Bold, Italic, Underline, List, Link as LinkIcon, Type } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { X, Paperclip, Image, Send, Bold, Italic, Underline, List, Link as LinkIcon, Type, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useUser } from '@zynlo/supabase'
+import { useUser, useEmailChannels } from '@zynlo/supabase'
 
 interface ComposeModalProps {
   isOpen: boolean
@@ -15,6 +15,7 @@ interface ComposeModalProps {
     subject: string
     content: string
     isHtml?: boolean
+    fromChannelId?: string
   }) => Promise<void>
 }
 
@@ -27,8 +28,33 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
   const [showCc, setShowCc] = useState(false)
   const [showBcc, setShowBcc] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [selectedChannelId, setSelectedChannelId] = useState<string>('')
+  const [showChannelDropdown, setShowChannelDropdown] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
+  const { data: emailChannels } = useEmailChannels()
+
+  // Set default channel when channels are loaded
+  useEffect(() => {
+    if (emailChannels && emailChannels.length > 0 && !selectedChannelId) {
+      setSelectedChannelId(emailChannels[0].id)
+    }
+  }, [emailChannels, selectedChannelId])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (showChannelDropdown && !target.closest('.channel-dropdown')) {
+        setShowChannelDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showChannelDropdown])
+
+  const selectedChannel = emailChannels?.find(channel => channel.id === selectedChannelId)
 
   const handleSend = async () => {
     if (!to.trim() || !subject.trim() || !content.trim()) {
@@ -43,7 +69,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
         bcc: bcc.trim() || undefined,
         subject: subject.trim(),
         content: content.trim(),
-        isHtml: true
+        isHtml: true,
+        fromChannelId: selectedChannelId
       })
       
       // Reset form
@@ -69,7 +96,12 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
 
   if (!isOpen) return null
 
-  const fromAddress = `${user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Support'} <${user?.email || 'support@zynlo.com'}>`
+  const getFromAddress = () => {
+    if (selectedChannel?.email_address) {
+      return `${selectedChannel.name} <${selectedChannel.email_address}>`
+    }
+    return `${user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Support'} <${user?.email || 'support@zynlo.com'}>`
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -94,11 +126,43 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
 
         {/* Email Fields */}
         <div className="px-6 py-4 space-y-3 border-b border-gray-200">
-          {/* From field */}
+          {/* From field with channel selector */}
           <div className="flex items-center space-x-3">
             <label className="text-sm font-medium text-gray-700 w-16">Van:</label>
-            <div className="flex-1">
-              <span className="text-sm text-gray-600">{fromAddress}</span>
+            <div className="flex-1 flex items-center">
+              {emailChannels && emailChannels.length > 1 ? (
+                <div className="relative channel-dropdown">
+                  <button
+                    onClick={() => setShowChannelDropdown(!showChannelDropdown)}
+                    className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <span>{getFromAddress()}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  
+                  {showChannelDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                      {emailChannels.map((channel) => (
+                        <button
+                          key={channel.id}
+                          onClick={() => {
+                            setSelectedChannelId(channel.id)
+                            setShowChannelDropdown(false)
+                          }}
+                          className={cn(
+                            "w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors",
+                            selectedChannelId === channel.id && "bg-blue-50 text-blue-700"
+                          )}
+                        >
+                          {channel.name} &lt;{channel.email_address}&gt;
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="text-sm text-gray-600">{getFromAddress()}</span>
+              )}
             </div>
           </div>
 
@@ -112,6 +176,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Email adres"
               autoFocus
+              dir="ltr"
             />
             <div className="flex space-x-2 text-sm">
               <button
@@ -145,6 +210,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
                 onChange={(e) => setCc(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email adres"
+                dir="ltr"
               />
             </div>
           )}
@@ -159,6 +225,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
                 onChange={(e) => setBcc(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email adres"
+                dir="ltr"
               />
             </div>
           )}
@@ -172,6 +239,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
               onChange={(e) => setSubject(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Onderwerp"
+              dir="ltr"
             />
           </div>
         </div>
@@ -238,7 +306,12 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
               contentEditable
               onInput={(e) => setContent((e.target as HTMLDivElement).innerHTML)}
               className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              style={{ whiteSpace: 'pre-wrap' }}
+              style={{ 
+                whiteSpace: 'pre-wrap',
+                direction: 'ltr',
+                textAlign: 'left'
+              }}
+              dir="ltr"
               dangerouslySetInnerHTML={{ __html: content }}
               data-placeholder="Typ hier uw bericht..."
             />

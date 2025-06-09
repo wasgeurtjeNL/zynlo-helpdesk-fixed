@@ -33,6 +33,7 @@ export * from './hooks/drafts';
 export * from './hooks/signatures';
 export * from './hooks/attachments';
 export * from './hooks/savedReplies';
+export * from './hooks/useChannels';
 
 // AI usage hooks
 export { 

@@ -106,6 +106,7 @@ export function Sidebar() {
     subject: string
     content: string
     isHtml?: boolean
+    fromChannelId?: string
   }) => {
     try {
       toast.loading('Email wordt verzonden...', { id: 'send-email' })
@@ -127,7 +128,7 @@ export function Sidebar() {
       
       toast.success('Email succesvol verzonden!', { 
         id: 'send-email',
-        description: `Verzonden naar ${data.to}`
+        description: `Verzonden naar ${data.to}${result.fromChannel ? ` via ${result.fromChannel}` : ''}`
       })
       
       // Optionally redirect to the new ticket

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { to, cc, bcc, subject, content, isHtml } = body
+    const { to, cc, bcc, subject, content, isHtml, fromChannelId } = body
 
     if (!to || !subject || !content) {
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user details for from address
+    // Get user details
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('email, full_name')
@@ -46,6 +46,25 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to get user details' },
         { status: 400 }
       )
+    }
+
+    // Get channel details if fromChannelId is provided
+    let fromAddress = `${userData.full_name || userData.email} <noreply@zynlo.com>`
+    let channelData = null
+
+    if (fromChannelId) {
+      const { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('id, name, email_address, type')
+        .eq('id', fromChannelId)
+        .eq('type', 'email')
+        .eq('is_active', true)
+        .single()
+
+      if (!channelError && channel?.email_address) {
+        channelData = channel
+        fromAddress = `${channel.name} <${channel.email_address}>`
+      }
     }
 
     // Find or create customer
@@ -78,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     // Send email via Resend
     const emailOptions: any = {
-      from: `${userData.full_name || userData.email} <noreply@zynlo.com>`,
+      from: fromAddress,
       to: [to],
       subject,
       html: isHtml ? content : undefined,
@@ -114,6 +133,9 @@ export async function POST(request: NextRequest) {
         p_metadata: {
           email_id: emailResult?.id,
           sent_by: user.id,
+          channel_id: fromChannelId,
+          channel_name: channelData?.name,
+          from_address: fromAddress,
           cc,
           bcc,
           is_outbound: true
@@ -142,6 +164,9 @@ export async function POST(request: NextRequest) {
           sender_name: userData.full_name || userData.email,
           metadata: {
             email_id: emailResult?.id,
+            channel_id: fromChannelId,
+            channel_name: channelData?.name,
+            from_address: fromAddress,
             cc,
             bcc,
             is_outbound: true
@@ -153,6 +178,8 @@ export async function POST(request: NextRequest) {
       success: true,
       emailId: emailResult?.id,
       ticketId: typedTicketResult?.ticket_id,
+      fromChannel: channelData?.name,
+      fromAddress,
       message: 'Email sent successfully'
     })
 
