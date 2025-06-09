@@ -33,16 +33,37 @@ export async function POST(
       throw new Error('Channel niet gevonden')
     }
     
-    // Get OAuth tokens for this channel
-    const { data: tokenData, error: tokenError } = await supabase
+    // Get OAuth tokens for this channel (with fallback to legacy storage)
+    let tokenData = null
+    let tokenError = null
+    
+    // Try new oauth_tokens table first
+    const { data: newTokenData, error: newTokenError } = await supabase
       .from('oauth_tokens')
       .select('*')
       .eq('channel_id', channelId)
       .eq('provider', 'gmail')
       .single()
     
-    if (tokenError || !tokenData) {
-      console.error('OAuth tokens not found:', tokenError)
+    if (newTokenData && !newTokenError) {
+      tokenData = newTokenData
+    } else {
+      // Fallback: check legacy storage in channels.settings
+      console.log('🔄 Checking legacy token storage...')
+      if (channel.settings?.oauth_token) {
+        tokenData = {
+          access_token: channel.settings.oauth_token,
+          refresh_token: channel.settings.refresh_token,
+          expires_at: channel.settings.token_expiry ? new Date(channel.settings.token_expiry).toISOString() : null,
+          token_type: 'Bearer',
+          scope: 'https://www.googleapis.com/auth/gmail.readonly'
+        }
+        console.log('📦 Using legacy tokens from channel settings')
+      }
+    }
+    
+    if (!tokenData?.access_token) {
+      console.error('OAuth tokens not found:', newTokenError)
       throw new Error('Gmail tokens niet gevonden - kanaal opnieuw koppelen')
     }
     
@@ -60,20 +81,44 @@ export async function POST(
     
     // Check if token needs refresh
     const now = new Date()
-    if (tokenData.expires_at && new Date(tokenData.expires_at) <= now) {
+    const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null
+    
+    if (expiresAt && expiresAt <= now) {
       console.log('🔄 Refreshing expired access token...')
       try {
         const { credentials } = await oauth2Client.refreshAccessToken()
         
-        // Update stored tokens
-        await supabase
-          .from('oauth_tokens')
-          .update({
-            access_token: credentials.access_token,
-            expires_at: credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', tokenData.id)
+        // Update tokens in both locations for compatibility
+        if (newTokenData && !newTokenError) {
+          // Update new oauth_tokens table
+          await supabase
+            .from('oauth_tokens')
+            .update({
+              access_token: credentials.access_token,
+              expires_at: credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('channel_id', channelId)
+            .eq('provider', 'gmail')
+        }
+        
+        // Also update legacy storage in channel settings
+        if (channel.settings?.oauth_token) {
+          const updatedSettings = {
+            ...channel.settings,
+            oauth_token: credentials.access_token,
+            token_expiry: credentials.expiry_date || null
+          }
+          
+          await supabase
+            .from('channels')
+            .update({ settings: updatedSettings })
+            .eq('id', channelId)
+        }
+        
+        // Update local tokenData object
+        tokenData.access_token = credentials.access_token
+        tokenData.expires_at = credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : null
           
         console.log('✅ Token refreshed successfully')
       } catch (refreshError) {

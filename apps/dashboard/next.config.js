@@ -17,8 +17,6 @@ const nextConfig = {
   generateBuildId: async () => {
     return 'build-' + Date.now()
   },
-  // Ensure the app directory is used
-  appDir: true,
 };
 
 module.exports = nextConfig;
