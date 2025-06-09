@@ -140,7 +140,7 @@ pnpm db:types        # Genereer TypeScript types
 
 ### Git Workflow
 
-**⚡ Quick Check**: Run `.\scripts\check-git-setup.ps1` (Windows) or `./scripts/check-git-setup.sh` (Mac/Linux) om je Git configuratie te verifiëren.
+**⚡ Quick Check**: Run `.\scripts\check-git-setup-simple.ps1` (Windows) or `./scripts/check-git-setup.sh` (Mac/Linux) om je Git configuratie te verifiëren.
 
 1. Maak een feature branch: `git checkout -b feature/nieuwe-feature`
 2. Commit changes: `git commit -m "feat: beschrijving"`

@@ -1,7 +1,7 @@
 # Git Setup Verification & Fix Script (PowerShell)
 # Usage: .\scripts\check-git-setup.ps1
 
-Write-Host "🔍 Checking Git repository configuration..." -ForegroundColor Cyan
+Write-Host "Checking Git repository configuration..." -ForegroundColor Cyan
 Write-Host ""
 
 # Expected configuration
@@ -12,7 +12,7 @@ $EXPECTED_BRANCH = "main"
 try {
     git rev-parse --git-dir | Out-Null
 } catch {
-    Write-Host "❌ Not in a Git repository!" -ForegroundColor Red
+    Write-Host "[ERROR] Not in a Git repository!" -ForegroundColor Red
     Write-Host "Please run this script from the project root directory."
     exit 1
 }
