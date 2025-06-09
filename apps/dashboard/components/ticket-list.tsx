@@ -576,14 +576,14 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
               <div
                 key={ticket.id}
                 className={cn(
-                  "group flex items-start gap-3 px-4 py-4 hover:bg-gray-50/70 cursor-pointer transition-all duration-200 relative border-l-4 border-transparent",
+                  "group flex items-start gap-3 px-4 py-3 hover:bg-gray-50/70 cursor-pointer transition-all duration-200 relative border-l-2 border-transparent",
                   isSelected && "bg-blue-50/50 hover:bg-blue-50/70 border-l-blue-400",
                   selectedTickets.has(ticket.id) && "bg-gray-50/70"
                 )}
                 onClick={() => ticket.number != null && handleTicketClick(ticket.number)}
               >
                 {/* Checkbox */}
-                <div className="pt-1.5" onClick={(e) => e.stopPropagation()}>
+                <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => handleSelectTicket(ticket.id)}
                     className={cn(
@@ -592,11 +592,11 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                     )}
                   >
                     {selectedTickets.has(ticket.id) ? (
-                      <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
-                        <Check className="w-3 h-3 text-white" />
+                      <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-blue-400 transition-colors" />
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 hover:border-blue-400 transition-colors" />
                     )}
                   </button>
                 </div>
@@ -605,7 +605,7 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                 <div className="flex-shrink-0">
                   <div className={cn(
                     getCustomerColor(ticket.customer), 
-                    "w-12 h-12 rounded-full text-white flex items-center justify-center text-sm font-semibold shadow-sm border-2 border-white"
+                    "w-9 h-9 rounded-full text-white flex items-center justify-center text-xs font-semibold"
                   )}>
                     {initials}
                   </div>
@@ -614,41 +614,41 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   {/* Header row */}
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <h3 className="font-semibold text-base text-gray-900 truncate leading-tight">
+                  <div className="flex items-start justify-between gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm text-gray-900 truncate">
                         {customerName}
                       </h3>
-                      <span className="text-xs text-gray-400 flex-shrink-0 font-medium">
+                      <span className="text-xs text-gray-400 flex-shrink-0">
                         {ticket.number && `#${ticket.number}`}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {ticket.priority === 'urgent' && (
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
                       )}
-                      <StatusIcon.icon className={cn("w-4 h-4", StatusIcon.color)} />
-                      <span className="text-xs text-gray-400 font-medium">
+                      <StatusIcon.icon className={cn("w-3.5 h-3.5", StatusIcon.color)} />
+                      <span className="text-xs text-gray-400">
                         {formatDate(ticket.updated_at || ticket.created_at)}
                       </span>
                     </div>
                   </div>
 
                   {/* Subject */}
-                  <p className="text-sm font-medium text-gray-800 truncate mb-2 leading-relaxed">
+                  <p className="text-sm font-medium text-gray-800 truncate mb-1">
                     {ticket.subject}
                   </p>
 
                   {/* Preview */}
-                  <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-gray-500 line-clamp-2">
                     {preview}
                   </p>
 
                   {/* Tags/Labels if any */}
                   {ticket.assignee && (
-                    <div className="flex items-center gap-2 mt-2.5">
-                      <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                        <div className="w-1 h-1 rounded-full bg-blue-500" />
                         {ticket.assignee.full_name || ticket.assignee.email}
                       </div>
                     </div>
