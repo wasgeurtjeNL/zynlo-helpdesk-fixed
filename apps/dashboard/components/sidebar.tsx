@@ -25,6 +25,7 @@ import { useAuth, useUser, useTicketCounts, useTaskStats } from '@zynlo/supabase
 import { useRouter } from 'next/navigation'
 import { ComposeModal } from './compose-modal'
 import { PresenceStatusSelectorCompact } from './presence-status-selector'
+import { MentionNotifications } from './mention-notifications'
 import { toast } from 'sonner'
 
 const navigation = [
@@ -188,8 +189,9 @@ export function Sidebar() {
     <>
       <div className="flex h-full w-64 flex-col bg-gray-900">
         {/* Logo */}
-        <div className="flex h-16 items-center px-6">
+        <div className="flex h-16 items-center justify-between px-6">
           <h1 className="text-base font-semibold text-white" style={{ fontSize: '1rem', lineHeight: '1.5rem' }}>Zynlo Helpdesk</h1>
+          <MentionNotifications />
         </div>
 
         {/* Compose Button */}

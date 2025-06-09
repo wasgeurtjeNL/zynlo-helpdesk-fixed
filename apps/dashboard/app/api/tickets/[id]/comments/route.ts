@@ -155,6 +155,18 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 })
     }
 
+    // Process @mentions in the comment content
+    try {
+      await supabase.rpc('extract_and_store_mentions', {
+        p_message_id: comment.id,
+        p_content: content.trim(),
+        p_mentioned_by_user_id: user.id
+      })
+    } catch (mentionError) {
+      // Log error but don't fail the comment creation
+      console.error('Error processing mentions:', mentionError)
+    }
+
     // Update ticket's updated_at timestamp
     await supabase
       .from('tickets')

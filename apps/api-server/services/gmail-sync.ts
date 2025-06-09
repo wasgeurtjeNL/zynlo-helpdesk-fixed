@@ -29,6 +29,12 @@ export class GmailSyncService {
 
   async syncChannel(channelId: string) {
     try {
+      // Check if OAuth credentials are configured
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.warn(`⚠️ Gmail sync skipped for channel ${channelId}: Google OAuth credentials not configured`)
+        return { processed: 0, errors: 0, updated: 0 }
+      }
+
       // Log debug info
       console.log('[Gmail Sync] Starting sync for channel:', channelId)
       console.log('[Gmail Sync] Supabase config:', {
@@ -246,6 +252,12 @@ export class GmailSyncService {
   // Run sync for all active Gmail channels
   async syncAllChannels() {
     try {
+      // Check if OAuth credentials are configured
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.warn('⚠️ Gmail sync disabled: Google OAuth credentials not configured')
+        return []
+      }
+
       // Get all active Gmail channels
       const { data: channels, error } = await supabase
         .from('channels')

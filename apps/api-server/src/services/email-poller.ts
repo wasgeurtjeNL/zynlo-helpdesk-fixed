@@ -79,6 +79,14 @@ export class EmailPoller {
       return;
     }
 
+    // Skip Gmail OAuth channels if credentials not configured
+    if (settings.provider === 'gmail' && (settings.oauth_token || settings.oauth_refresh_token)) {
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.log(`⚠️ Skipping Gmail OAuth channel ${channel.id}: Google OAuth credentials not configured`);
+        return;
+      }
+    }
+
     const config = {
       id: channel.id,
       provider: settings.provider || 'other',

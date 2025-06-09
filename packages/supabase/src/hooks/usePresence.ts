@@ -297,11 +297,27 @@ export function useTicketActiveUsers(ticketId?: string) {
         p_ticket_id: ticketId
       })
 
-      if (error) throw error
+      if (error) {
+        // If the function doesn't exist (404), return empty array instead of throwing
+        if (error.message?.includes('does not exist') || error.code === 'PGRST204') {
+          console.warn('[useTicketActiveUsers] RPC function not found - returning empty array. Run database migrations to fix this.')
+          return []
+        }
+        throw error
+      }
       return data || []
     },
     enabled: !!ticketId,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
+    retry: (failureCount, error) => {
+      // Don't retry if the function doesn't exist
+      if (error?.message?.includes('does not exist') || error?.code === 'PGRST204') {
+        return false
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 }
 

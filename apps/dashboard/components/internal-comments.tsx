@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useTicketComments, useAddComment, useRealtimeComments, useCommentStats, type Comment } from '@zynlo/supabase'
-import { MessageCircle, Send, Lock, User, Clock } from 'lucide-react'
+import { useTicketComments, useAddComment, useRealtimeComments, useCommentStats, useMentionSearch, type Comment, type MentionUser } from '@zynlo/supabase'
+import { MessageCircle, Send, Lock, User, Clock, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { MentionAutocomplete } from './mention-autocomplete'
+import { MentionText } from './mention-text'
 
 interface InternalCommentsProps {
   ticketId: string
@@ -131,9 +133,11 @@ export function InternalComments({ ticketId, className }: InternalCommentsProps)
                             <span>{formatDate(comment.created_at)}</span>
                           </div>
                         </div>
-                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {comment.content}
-                        </div>
+                        <MentionText 
+                          text={comment.content}
+                          className="text-sm text-gray-700"
+                          mentionClassName="bg-orange-100 text-orange-800 px-1 py-0.5 rounded font-medium"
+                        />
                       </div>
                     </div>
                   </div>
@@ -152,14 +156,14 @@ export function InternalComments({ ticketId, className }: InternalCommentsProps)
                   </div>
                 </div>
                 <div className="flex-1">
-                  <textarea
-                    ref={textareaRef}
+                  <MentionAutocomplete
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    onChange={setNewComment}
                     placeholder="Voeg een interne notitie toe..."
-                    className="w-full px-3 py-2 text-sm border border-orange-200 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    rows={3}
-                    dir="ltr"
+                    className="min-h-[80px] border-orange-200 focus:ring-orange-500 focus:border-orange-500"
+                    onMentionSelect={(user) => {
+                      toast.success(`${user.full_name || user.email} getagd`)
+                    }}
                   />
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs text-orange-600 flex items-center space-x-1">
