@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { useAuth, useUser, useTicketCounts, useTaskStats } from '@zynlo/supabase'
 import { useRouter } from 'next/navigation'
 import { ComposeModal } from './compose-modal'
+import { PresenceStatusSelectorCompact } from './presence-status-selector'
 import { toast } from 'sonner'
 
 const navigation = [
@@ -279,9 +280,13 @@ export function Sidebar() {
         {/* User menu */}
         <div className="border-t border-gray-800 p-4">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 relative">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-medium text-white">
                 {user?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+              {/* Presence indicator on avatar */}
+              <div className="absolute -bottom-1 -right-1">
+                <PresenceStatusSelectorCompact />
               </div>
             </div>
             <div className="ml-3 flex-1">

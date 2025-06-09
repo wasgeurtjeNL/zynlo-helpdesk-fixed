@@ -266,7 +266,7 @@
         4,
         7
       ],
-      "status": "pending",
+      "status": "in-progress",
       "subtasks": [
         {
           "id": 1,
@@ -274,7 +274,7 @@
           "description": "Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time",
           "dependencies": [],
           "details": "Create presence table schema with user_id, status, last_seen fields. Set up Supabase Realtime subscriptions for presence updates. Implement presence state management with automatic timeout handling for disconnections. Create presence API endpoints for status updates. Build presence indicator UI components showing colored dots/badges for different states.",
-          "status": "pending",
+          "status": "in-progress",
           "testStrategy": "Test presence updates with multiple concurrent users, verify automatic status changes on disconnect, test reconnection scenarios and state persistence"
         },
         {

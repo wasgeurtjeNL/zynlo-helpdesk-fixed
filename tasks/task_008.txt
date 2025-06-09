@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Implement Real-time Collaboration Features
-# Status: pending
+# Status: in-progress
 # Dependencies: 4, 7
 # Priority: medium
 # Description: Build team collaboration capabilities including real-time presence indicators, internal comments, @mentions system, and collision detection for simultaneous editing.
@@ -11,7 +11,7 @@ Implement presence system using Supabase Realtime with online/away/busy states. 
 Test presence updates across multiple connected clients. Verify internal comments never appear in customer responses. Test @mention notifications reach intended recipients. Validate collision detection prevents data loss. Test real-time updates with network interruptions.
 
 # Subtasks:
-## 1. Set up Supabase Realtime Infrastructure and Presence System [pending]
+## 1. Set up Supabase Realtime Infrastructure and Presence System [in-progress]
 ### Dependencies: None
 ### Description: Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time
 ### Details:

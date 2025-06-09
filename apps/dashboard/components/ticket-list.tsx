@@ -30,6 +30,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Database } from '@zynlo/supabase'
+import { TicketActiveUsersCompact } from './ticket-active-users'
+import { TypingIndicator } from './typing-indicator'
 import { toast } from 'sonner'
 
 type TicketStatus = 'new' | 'open' | 'pending' | 'resolved' | 'closed'
@@ -643,6 +645,8 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                       <span className="text-xs text-gray-400 flex-shrink-0">
                         {ticket.number && `#${ticket.number}`}
                       </span>
+                      {/* Active users indicator */}
+                      <TicketActiveUsersCompact ticketId={ticket.id} />
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {ticket.priority === 'urgent' && (
@@ -670,6 +674,9 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                   )}>
                     {preview}
                   </p>
+
+                  {/* Typing indicator */}
+                  <TypingIndicator ticketId={ticket.id} className="mt-1" />
 
                   {/* Tags/Labels if any */}
                   {ticket.assignee && (
