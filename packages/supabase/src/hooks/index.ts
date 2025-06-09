@@ -1,6 +1,7 @@
 export { useAuth, useUser as useAuthUser } from './useAuth'
 export * from './useTickets'
 export * from './useTicketService'
+export * from './useTicketReadStatus'
 export * from './useLabels'
 export * from './useRealtimeTickets'
 export * from './useTicketCounts'

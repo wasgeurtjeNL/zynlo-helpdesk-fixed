@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTickets, useDeleteTicket, useBulkUpdateTickets, useBulkAssignTickets, useBulkMarkAsSpam, useUsers } from '@zynlo/supabase'
+import { useTickets, useDeleteTicket, useBulkUpdateTickets, useBulkAssignTickets, useBulkMarkAsSpam, useUsers, useTicketUnreadStatus, useMarkTicketAsRead } from '@zynlo/supabase'
 import { useSelectedTicketSafe } from '@/hooks/use-selected-ticket'
 import { 
   MoreVertical, 
@@ -147,6 +147,20 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
   const totalCount = data?.totalCount || 0
   const totalPages = data?.totalPages || 1
 
+  // Get unread status for all tickets
+  const ticketIds = tickets.map((ticket: any) => ticket.id)
+  const { data: unreadStatuses = [] } = useTicketUnreadStatus(ticketIds)
+  const markTicketAsRead = useMarkTicketAsRead()
+
+  // Create a map for fast lookup of unread status
+  const unreadMap = useMemo(() => {
+    const map = new Map()
+    unreadStatuses.forEach((item: any) => {
+      map.set(item.ticketId, item.isUnread)
+    })
+    return map
+  }, [unreadStatuses])
+
   // Reset to page 1 when search query changes
   useEffect(() => {
     setCurrentPage(1)
@@ -192,8 +206,11 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
     setSelectedTickets(newSelected)
   }
 
-  const handleTicketClick = (ticketNumber: number) => {
+  const handleTicketClick = (ticketNumber: number, ticketId: string) => {
     const pathname = window.location.pathname
+    
+    // Mark ticket as read when clicked
+    markTicketAsRead.mutate(ticketId)
     
     // Check if we're on a page that should use split-screen layout
     // This includes /tickets page and all /inbox/* pages  
@@ -571,6 +588,7 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
             const customerName = getCustomerName(ticket.customer)
             const initials = getInitials(ticket.customer?.name, ticket.customer?.email)
             const preview = getMessagePreview(ticket)
+            const isUnread = unreadMap.get(ticket.id) === true
             
             return (
               <div
@@ -580,7 +598,7 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                   isSelected && "bg-blue-50/50 hover:bg-blue-50/70 border-l-blue-400",
                   selectedTickets.has(ticket.id) && "bg-gray-50/70"
                 )}
-                onClick={() => ticket.number != null && handleTicketClick(ticket.number)}
+                onClick={() => ticket.number != null && handleTicketClick(ticket.number, ticket.id)}
               >
                 {/* Checkbox */}
                 <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
@@ -616,7 +634,10 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                   {/* Header row */}
                   <div className="flex items-start justify-between gap-2 mb-0.5">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-gray-900 truncate">
+                      <h3 className={cn(
+                        "text-sm text-gray-900 truncate",
+                        isUnread ? "font-bold" : "font-semibold"
+                      )}>
                         {customerName}
                       </h3>
                       <span className="text-xs text-gray-400 flex-shrink-0">
@@ -635,12 +656,18 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                   </div>
 
                   {/* Subject */}
-                  <p className="text-sm font-medium text-gray-800 truncate mb-1">
+                  <p className={cn(
+                    "text-sm text-gray-800 truncate mb-1",
+                    isUnread ? "font-bold" : "font-medium"
+                  )}>
                     {ticket.subject}
                   </p>
 
                   {/* Preview */}
-                  <p className="text-xs text-gray-500 line-clamp-2">
+                  <p className={cn(
+                    "text-xs line-clamp-2",
+                    isUnread ? "text-gray-600 font-medium" : "text-gray-500"
+                  )}>
                     {preview}
                   </p>
 

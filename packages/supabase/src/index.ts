@@ -19,6 +19,7 @@ export type {
 export { useUser } from './hooks/useUser';
 export { useUser as useAuthUser, useAuth } from './hooks/useAuth';
 export * from './hooks/useTickets';
+export * from './hooks/useTicketReadStatus';
 export * from './hooks/useRealtimeTickets';
 export * from './hooks/useUsers';
 export * from './hooks/useLabels';
