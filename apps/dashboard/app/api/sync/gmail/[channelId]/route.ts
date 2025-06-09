@@ -338,17 +338,83 @@ export async function POST(
 
           console.log(`💬 Created conversation: ${conversation.id}`);
 
-          // 5. Get email content (basic text extraction)
+          // 5. Get email content (comprehensive extraction for HTML emails)
           let emailContent = emailInfo.snippet || '';
+          let contentType = 'text/plain';
           
-          // Try to extract better content from email body
-          if (fullMessage.data.payload?.body?.data) {
-            try {
-              const decodedContent = Buffer.from(fullMessage.data.payload.body.data, 'base64').toString('utf-8');
-              emailContent = decodedContent.substring(0, 10000); // Limit content length
-            } catch (decodeError) {
-              console.warn('Failed to decode email body, using snippet');
+          // Function to recursively extract content from email parts
+          const extractEmailContent = (payload: any): { content: string, contentType: string } => {
+            // Helper to decode base64 content
+            const decodeContent = (data: string): string => {
+              try {
+                return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
+              } catch (error) {
+                console.warn('Failed to decode content:', error);
+                return '';
+              }
+            };
+
+            // If this part has direct body data
+            if (payload.body?.data) {
+              const mimeType = payload.mimeType || 'text/plain';
+              const content = decodeContent(payload.body.data);
+              return { content, contentType: mimeType };
             }
+
+            // If this part has sub-parts (multipart email)
+            if (payload.parts && Array.isArray(payload.parts)) {
+              let htmlContent = '';
+              let textContent = '';
+              let foundContentType = 'text/plain';
+
+              for (const part of payload.parts) {
+                const partResult = extractEmailContent(part);
+                
+                if (part.mimeType === 'text/html' && partResult.content) {
+                  htmlContent = partResult.content;
+                  foundContentType = 'text/html';
+                } else if (part.mimeType === 'text/plain' && partResult.content) {
+                  textContent = partResult.content;
+                }
+                
+                // Also check nested parts
+                if (part.parts) {
+                  const nestedResult = extractEmailContent(part);
+                  if (part.mimeType?.includes('text/html') || nestedResult.contentType === 'text/html') {
+                    htmlContent = htmlContent || nestedResult.content;
+                    foundContentType = 'text/html';
+                  } else if (nestedResult.content) {
+                    textContent = textContent || nestedResult.content;
+                  }
+                }
+              }
+
+              // Prefer HTML content over plain text
+              if (htmlContent) {
+                return { content: htmlContent, contentType: 'text/html' };
+              } else if (textContent) {
+                return { content: textContent, contentType: 'text/plain' };
+              }
+            }
+
+            return { content: '', contentType: 'text/plain' };
+          };
+
+          try {
+            if (fullMessage.data.payload) {
+              const extracted = extractEmailContent(fullMessage.data.payload);
+              if (extracted.content) {
+                emailContent = extracted.content;
+                contentType = extracted.contentType;
+                console.log(`📧 Extracted ${contentType} content (${emailContent.length} chars)`);
+              } else {
+                console.warn('📧 No content extracted, using snippet');
+                emailContent = emailInfo.snippet || 'No content available';
+              }
+            }
+          } catch (extractError) {
+            console.error('❌ Content extraction failed:', extractError);
+            emailContent = emailInfo.snippet || 'Content extraction failed';
           }
 
           // 6. Create message
@@ -360,7 +426,7 @@ export async function POST(
               sender_type: 'customer',
               sender_id: customer.id,
               sender_name: customerName,
-              content_type: 'text/html',
+              content_type: contentType,
               metadata: {
                 gmail_message_id: emailInfo.messageId,
                 original_date: emailInfo.date,
