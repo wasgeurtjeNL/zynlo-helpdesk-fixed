@@ -203,6 +203,18 @@ export function MessageContent({
                 <span>Debug</span>
               </button>
             )}
+            <button
+              onClick={() => setUseIframe(!useIframe)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded transition-colors text-xs",
+                useIframe 
+                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+              )}
+              title={useIframe ? "Switch to fallback" : "Switch to iframe"}
+            >
+              <span>{useIframe ? "Test Fallback" : "Test Iframe"}</span>
+            </button>
           </div>
         </div>
       )}
@@ -252,7 +264,7 @@ export function MessageContent({
               ref={iframeRef}
               className="w-full border-0 overflow-hidden bg-white rounded"
               style={{ height: `${iframeHeight}px` }}
-              sandbox="allow-same-origin allow-popups"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
               onError={() => handleIframeError('Iframe failed to load')}
               onLoad={() => {
                 console.log('[MessageContent] Iframe loaded successfully')
@@ -384,7 +396,7 @@ export function MessageContent({
                 ⚠️ Using fallback HTML rendering (iframe not available)
               </div>
               <div 
-                className="prose prose-sm max-w-none"
+                className="bg-white p-4 rounded border"
                 style={{
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                   fontSize: '14px',
