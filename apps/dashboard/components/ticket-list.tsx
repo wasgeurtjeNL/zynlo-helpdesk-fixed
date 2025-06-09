@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import type { Database } from '@zynlo/supabase'
 import { TicketActiveUsersCompact } from './ticket-active-users'
 import { TypingIndicator } from './typing-indicator'
+import { InternalCommentsIndicator } from './internal-comments'
 import { toast } from 'sonner'
 
 type TicketStatus = 'new' | 'open' | 'pending' | 'resolved' | 'closed'
@@ -677,6 +678,9 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
 
                   {/* Typing indicator */}
                   <TypingIndicator ticketId={ticket.id} className="mt-1" />
+
+                  {/* Internal comments indicator */}
+                  <InternalCommentsIndicator ticketId={ticket.id} className="mt-1" />
 
                   {/* Tags/Labels if any */}
                   {ticket.assignee && (

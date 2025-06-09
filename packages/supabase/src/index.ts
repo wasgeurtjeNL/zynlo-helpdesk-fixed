@@ -34,6 +34,7 @@ export * from './hooks/signatures';
 export * from './hooks/attachments';
 export * from './hooks/savedReplies';
 export * from './hooks/useChannels';
+export * from './hooks/useComments';
 
 // AI usage hooks
 export { 

@@ -11,13 +11,13 @@ Implement presence system using Supabase Realtime with online/away/busy states. 
 Test presence updates across multiple connected clients. Verify internal comments never appear in customer responses. Test @mention notifications reach intended recipients. Validate collision detection prevents data loss. Test real-time updates with network interruptions.
 
 # Subtasks:
-## 1. Set up Supabase Realtime Infrastructure and Presence System [in-progress]
+## 1. Set up Supabase Realtime Infrastructure and Presence System [done]
 ### Dependencies: None
 ### Description: Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time
 ### Details:
 Create presence table schema with user_id, status, last_seen fields. Set up Supabase Realtime subscriptions for presence updates. Implement presence state management with automatic timeout handling for disconnections. Create presence API endpoints for status updates. Build presence indicator UI components showing colored dots/badges for different states.
 
-## 2. Build Internal Comments System with Visibility Controls [pending]
+## 2. Build Internal Comments System with Visibility Controls [in-progress]
 ### Dependencies: 8.1
 ### Description: Implement a commenting system that allows agents to add internal notes on tickets that are hidden from customers
 ### Details:

@@ -274,7 +274,7 @@
           "description": "Configure Supabase Realtime channels and implement the presence tracking system to monitor agent online/away/busy states in real-time",
           "dependencies": [],
           "details": "Create presence table schema with user_id, status, last_seen fields. Set up Supabase Realtime subscriptions for presence updates. Implement presence state management with automatic timeout handling for disconnections. Create presence API endpoints for status updates. Build presence indicator UI components showing colored dots/badges for different states.",
-          "status": "in-progress",
+          "status": "done",
           "testStrategy": "Test presence updates with multiple concurrent users, verify automatic status changes on disconnect, test reconnection scenarios and state persistence"
         },
         {
@@ -285,7 +285,7 @@
             1
           ],
           "details": "Design comments table with ticket_id, user_id, content, is_internal flag, and timestamps. Create comment API endpoints with authorization checks for internal visibility. Build comment UI components with visual distinction for internal comments. Implement comment threading and editing capabilities. Add comment permissions based on user roles.",
-          "status": "pending",
+          "status": "in-progress",
           "testStrategy": "Verify internal comments are not exposed in customer-facing APIs, test comment CRUD operations, validate permission checks for different user roles"
         },
         {
