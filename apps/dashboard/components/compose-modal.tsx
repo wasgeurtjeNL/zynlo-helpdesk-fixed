@@ -30,7 +30,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
   const [isSending, setIsSending] = useState(false)
   const [selectedChannelId, setSelectedChannelId] = useState<string>('')
   const [showChannelDropdown, setShowChannelDropdown] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
   const { user } = useUser()
   const { data: emailChannels } = useEmailChannels()
 
@@ -69,7 +69,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
         bcc: bcc.trim() || undefined,
         subject: subject.trim(),
         content: content.trim(),
-        isHtml: true,
+        isHtml: false,
         fromChannelId: selectedChannelId
       })
       
@@ -90,52 +90,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
   }
 
   const applyFormat = (command: string, value?: string) => {
-    document.execCommand(command, false, value)
+    // For textarea, we'll handle formatting differently or disable it
     contentRef.current?.focus()
-  }
-
-  const handleContentInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement
-    setContent(target.innerHTML)
-    
-    // Force LTR cursor positioning
-    setTimeout(() => {
-      if (contentRef.current) {
-        const selection = window.getSelection()
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0)
-          // Ensure cursor is at the end for LTR behavior
-          range.collapse(false)
-          selection.removeAllRanges()
-          selection.addRange(range)
-        }
-      }
-    }, 0)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // For regular character input, ensure proper LTR insertion
-    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      e.preventDefault()
-      
-      const selection = window.getSelection()
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0)
-        range.deleteContents()
-        
-        const textNode = document.createTextNode(e.key)
-        range.insertNode(textNode)
-        
-        // Move cursor to end of inserted text
-        range.setStartAfter(textNode)
-        range.setEndAfter(textNode)
-        selection.removeAllRanges()
-        selection.addRange(range)
-        
-        // Update content
-        setContent(contentRef.current?.innerHTML || '')
-      }
-    }
   }
 
   if (!isOpen) return null
@@ -297,51 +253,53 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
           {/* Toolbar */}
           <div className="px-6 py-3 border-b border-gray-200 flex items-center space-x-1">
             <button
-              onClick={() => applyFormat('bold')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Bold"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Bold (not available in plain text mode)"
             >
               <Bold className="h-4 w-4" />
             </button>
             <button
-              onClick={() => applyFormat('italic')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Italic"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Italic (not available in plain text mode)"
             >
               <Italic className="h-4 w-4" />
             </button>
             <button
-              onClick={() => applyFormat('underline')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Underline"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Underline (not available in plain text mode)"
             >
               <Underline className="h-4 w-4" />
             </button>
             <div className="h-6 w-px bg-gray-300 mx-2" />
             <button
-              onClick={() => applyFormat('insertUnorderedList')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Bullet list"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Bullet list (not available in plain text mode)"
             >
               <List className="h-4 w-4" />
             </button>
             <button
-              onClick={() => applyFormat('insertOrderedList')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Numbered list"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Numbered list (not available in plain text mode)"
             >
               <Type className="h-4 w-4" />
             </button>
             <div className="h-6 w-px bg-gray-300 mx-2" />
             <button
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Attach file"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Attach file (coming soon)"
             >
               <Paperclip className="h-4 w-4" />
             </button>
             <button
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              title="Insert image"
+              disabled
+              className="p-2 text-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Insert image (coming soon)"
             >
               <Image className="h-4 w-4" />
             </button>
@@ -349,23 +307,20 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
 
           {/* Text Editor */}
           <div className="flex-1 px-6 py-4">
-            <div
+            <textarea
               ref={contentRef}
-              contentEditable
-              onInput={handleContentInput}
-              onKeyDown={handleKeyDown}
-              className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ltr-text-editor"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none ltr-input"
               style={{ 
-                whiteSpace: 'pre-wrap',
                 direction: 'ltr',
                 textAlign: 'left',
-                unicodeBidi: 'bidi-override',
+                unicodeBidi: 'normal',
                 writingMode: 'horizontal-tb'
               }}
               dir="ltr"
               lang="nl"
-              dangerouslySetInnerHTML={{ __html: content }}
-              data-placeholder="Typ hier uw bericht..."
+              placeholder="Typ hier uw bericht..."
             />
           </div>
         </div>

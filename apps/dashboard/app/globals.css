@@ -88,14 +88,14 @@ h1.text-lg {
 .ltr-text-editor {
   direction: ltr !important;
   text-align: left !important;
-  unicode-bidi: bidi-override !important;
+  unicode-bidi: normal !important;
   writing-mode: horizontal-tb !important;
 }
 
 .ltr-text-editor * {
   direction: ltr !important;
   text-align: left !important;
-  unicode-bidi: bidi-override !important;
+  unicode-bidi: normal !important;
 }
 
 /* Ensure cursor behavior is LTR */
