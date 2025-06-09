@@ -3,6 +3,7 @@ import { google } from 'googleapis'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+  const channelId = searchParams.get('channelId')
   const channelName = searchParams.get('channelName') || 'Gmail Account'
   const userId = searchParams.get('userId')
   
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
     
     // Encode state data safely
     const stateData = {
+      channelId,
       channelName,
       userId,
       timestamp: Date.now()

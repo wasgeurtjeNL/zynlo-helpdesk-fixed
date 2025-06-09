@@ -78,6 +78,7 @@ export default function EmailChannelDetailPage() {
     if (!channel) return
     
     const params = new URLSearchParams({
+      channelId: channel.id,
       channelName: channel.name,
       userId: 'current-user' // TODO: Get actual user ID
     })

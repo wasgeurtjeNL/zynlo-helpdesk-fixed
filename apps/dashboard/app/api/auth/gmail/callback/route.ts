@@ -70,41 +70,77 @@ export async function GET(request: NextRequest) {
     }
     
     // Parse state to get channel info
+    let channelId = null
     let channelName = 'Gmail Account'
     let userId = null
     
     if (state) {
       try {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
+        channelId = stateData.channelId
         channelName = stateData.channelName || channelName
         userId = stateData.userId
-        console.log(`📝 State parsed: ${channelName} for user ${userId}`)
+        console.log(`📝 State parsed: channelId=${channelId}, name=${channelName} for user ${userId}`)
       } catch (e) {
         console.warn('Could not parse state data:', e)
       }
     }
     
-    // Create channel in database
-    const { data: channel, error: channelError } = await supabase
-      .from('channels')
-      .insert({
-        name: channelName,
-        type: 'email',
-        provider: 'gmail',
-        settings: {
-          email_address: emailAddress,
-          messages_total: profile?.data.messagesTotal || 0,
-          threads_total: profile?.data.threadsTotal || 0
-        },
-        is_active: true,
-        created_by: userId
-      })
-      .select()
-      .single()
+    // Update existing channel or create new one
+    let channel
+    let channelError
     
-    if (channelError) {
-      console.error('Channel creation error:', channelError)
-      throw new Error('Failed to create channel')
+    if (channelId) {
+      // Update existing channel
+      console.log(`🔄 Updating existing channel: ${channelId}`)
+      const { data, error } = await supabase
+        .from('channels')
+        .update({
+          settings: {
+            email_address: emailAddress,
+            messages_total: profile?.data.messagesTotal || 0,
+            threads_total: profile?.data.threadsTotal || 0
+          },
+          is_active: true
+        })
+        .eq('id', channelId)
+        .select()
+        .single()
+        
+      channel = data
+      channelError = error
+      
+      if (channelError) {
+        console.error('Channel update error:', channelError)
+        throw new Error('Failed to update existing channel')
+      }
+    } else {
+      // Create new channel (fallback)
+      console.log(`➕ Creating new channel: ${channelName}`)
+      const { data, error } = await supabase
+        .from('channels')
+        .insert({
+          name: channelName,
+          type: 'email',
+          provider: 'gmail',
+          settings: {
+            email_address: emailAddress,
+            messages_total: profile?.data.messagesTotal || 0,
+            threads_total: profile?.data.threadsTotal || 0
+          },
+          is_active: true,
+          created_by: userId
+        })
+        .select()
+        .single()
+        
+      channel = data
+      channelError = error
+      
+      if (channelError) {
+        console.error('Channel creation error:', channelError)
+        throw new Error('Failed to create channel')
+      }
     }
     
     // Store OAuth tokens securely
@@ -127,9 +163,13 @@ export async function GET(request: NextRequest) {
     
     console.log(`✅ Gmail OAuth successful for ${emailAddress}`)
     
-    // Redirect back to email channels page with success
+    // Redirect back to appropriate page with success
+    const redirectUrl = channelId 
+      ? `/kanalen/email/${channelId}?success=gmail_connected`
+      : '/kanalen/email?success=gmail_connected'
+    
     return NextResponse.redirect(
-      new URL('/kanalen/email?success=gmail_connected', request.url)
+      new URL(redirectUrl, request.url)
     )
     
   } catch (error) {
