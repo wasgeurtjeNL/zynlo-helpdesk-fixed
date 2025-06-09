@@ -94,6 +94,50 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
     contentRef.current?.focus()
   }
 
+  const handleContentInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement
+    setContent(target.innerHTML)
+    
+    // Force LTR cursor positioning
+    setTimeout(() => {
+      if (contentRef.current) {
+        const selection = window.getSelection()
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0)
+          // Ensure cursor is at the end for LTR behavior
+          range.collapse(false)
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+      }
+    }, 0)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // For regular character input, ensure proper LTR insertion
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault()
+      
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        range.deleteContents()
+        
+        const textNode = document.createTextNode(e.key)
+        range.insertNode(textNode)
+        
+        // Move cursor to end of inserted text
+        range.setStartAfter(textNode)
+        range.setEndAfter(textNode)
+        selection.removeAllRanges()
+        selection.addRange(range)
+        
+        // Update content
+        setContent(contentRef.current?.innerHTML || '')
+      }
+    }
+  }
+
   if (!isOpen) return null
 
   const getFromAddress = () => {
@@ -173,7 +217,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
               type="email"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ltr-input"
+              style={{ direction: 'ltr', textAlign: 'left' }}
               placeholder="Email adres"
               autoFocus
               dir="ltr"
@@ -208,7 +253,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
                 type="email"
                 value={cc}
                 onChange={(e) => setCc(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ltr-input"
+                style={{ direction: 'ltr', textAlign: 'left' }}
                 placeholder="Email adres"
                 dir="ltr"
               />
@@ -223,7 +269,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
                 type="email"
                 value={bcc}
                 onChange={(e) => setBcc(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ltr-input"
+                style={{ direction: 'ltr', textAlign: 'left' }}
                 placeholder="Email adres"
                 dir="ltr"
               />
@@ -237,7 +284,8 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ltr-input"
+              style={{ direction: 'ltr', textAlign: 'left' }}
               placeholder="Onderwerp"
               dir="ltr"
             />
@@ -304,14 +352,18 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
             <div
               ref={contentRef}
               contentEditable
-              onInput={(e) => setContent((e.target as HTMLDivElement).innerHTML)}
-              className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              onInput={handleContentInput}
+              onKeyDown={handleKeyDown}
+              className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ltr-text-editor"
               style={{ 
                 whiteSpace: 'pre-wrap',
                 direction: 'ltr',
-                textAlign: 'left'
+                textAlign: 'left',
+                unicodeBidi: 'bidi-override',
+                writingMode: 'horizontal-tb'
               }}
               dir="ltr"
+              lang="nl"
               dangerouslySetInnerHTML={{ __html: content }}
               data-placeholder="Typ hier uw bericht..."
             />

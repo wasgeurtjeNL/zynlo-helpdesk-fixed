@@ -83,3 +83,35 @@ h1.text-lg {
   opacity: 1;
   pointer-events: none;
 }
+
+/* Force LTR text direction for compose modal text editor */
+.ltr-text-editor {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  writing-mode: horizontal-tb !important;
+}
+
+.ltr-text-editor * {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+}
+
+/* Ensure cursor behavior is LTR */
+.ltr-text-editor:focus {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+/* Force LTR for all input fields */
+.ltr-input {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+}
+
+.ltr-input:focus {
+  direction: ltr !important;
+  text-align: left !important;
+}
