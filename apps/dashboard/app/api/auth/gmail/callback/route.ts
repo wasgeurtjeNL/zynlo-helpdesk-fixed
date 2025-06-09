@@ -34,11 +34,15 @@ export async function GET(request: NextRequest) {
     
     const supabase = createClient(supabaseUrl, supabaseKey)
     
-    // Setup OAuth2 client
+    // Setup OAuth2 client with consistent callback URL
+    const baseUrl = request.url.includes('localhost') 
+      ? 'http://localhost:3000'
+      : 'https://zynlo-helpdesk-fixed-dashboard-fjrm.vercel.app'
+      
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      new URL('/api/auth/gmail/callback', request.url).toString()
+      `${baseUrl}/api/auth/gmail/callback`
     )
     
     // Exchange authorization code for tokens
