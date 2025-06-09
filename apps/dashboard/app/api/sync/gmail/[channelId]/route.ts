@@ -83,15 +83,36 @@ export async function POST(
     const now = new Date()
     const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null
     
+    console.log(`🕐 Token check: expires=${expiresAt?.toISOString()}, now=${now.toISOString()}`)
+    
     if (expiresAt && expiresAt <= now) {
-      console.log('🔄 Refreshing expired access token...')
+      console.log('🔄 Token expired, attempting refresh...')
+      
+      if (!tokenData.refresh_token) {
+        console.error('❌ No refresh token available')
+        throw new Error('Geen refresh token - kanaal opnieuw koppelen vereist')
+      }
+      
+      // Check if Google OAuth credentials are configured
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.error('❌ Google OAuth credentials not configured')
+        throw new Error('OAuth configuratie ontbreekt - contacteer administrator')
+      }
+      
       try {
+        console.log('🔑 Using refresh token to get new access token...')
         const { credentials } = await oauth2Client.refreshAccessToken()
+        
+        if (!credentials.access_token) {
+          throw new Error('No access token received from refresh')
+        }
+        
+        console.log('✅ New access token received')
         
         // Update tokens in both locations for compatibility
         if (newTokenData && !newTokenError) {
-          // Update new oauth_tokens table
-          await supabase
+          console.log('💾 Updating oauth_tokens table...')
+          const { error: updateError } = await supabase
             .from('oauth_tokens')
             .update({
               access_token: credentials.access_token,
@@ -100,31 +121,63 @@ export async function POST(
             })
             .eq('channel_id', channelId)
             .eq('provider', 'gmail')
+            
+          if (updateError) {
+            console.error('Failed to update oauth_tokens:', updateError)
+          }
         }
         
         // Also update legacy storage in channel settings
         if (channel.settings?.oauth_token) {
+          console.log('💾 Updating channel settings...')
           const updatedSettings = {
             ...channel.settings,
             oauth_token: credentials.access_token,
             token_expiry: credentials.expiry_date || null
           }
           
-          await supabase
+          const { error: channelUpdateError } = await supabase
             .from('channels')
             .update({ settings: updatedSettings })
             .eq('id', channelId)
+            
+          if (channelUpdateError) {
+            console.error('Failed to update channel settings:', channelUpdateError)
+          }
         }
         
-        // Update local tokenData object
+        // Update local tokenData object for immediate use
         tokenData.access_token = credentials.access_token
         tokenData.expires_at = credentials.expiry_date ? new Date(credentials.expiry_date).toISOString() : null
+        
+        // Update oauth2Client credentials
+        oauth2Client.setCredentials({
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expiry_date: credentials.expiry_date
+        })
           
-        console.log('✅ Token refreshed successfully')
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError)
-        throw new Error('Token vernieuwen mislukt - kanaal opnieuw koppelen')
+        console.log('✅ Token refresh completed successfully')
+        
+      } catch (refreshError: any) {
+        console.error('❌ Token refresh failed:', refreshError)
+        
+        // Check for specific Google API errors
+        if (refreshError?.message?.includes('invalid_grant')) {
+          throw new Error('Refresh token verlopen - kanaal opnieuw koppelen vereist')
+        } else if (refreshError?.message?.includes('invalid_client')) {
+          throw new Error('OAuth configuratie ongeldig - contacteer administrator')
+        } else {
+          console.error('Refresh error details:', {
+            message: refreshError?.message,
+            code: refreshError?.code,
+            status: refreshError?.status
+          })
+          throw new Error(`Token vernieuwen mislukt: ${refreshError?.message || 'Onbekende fout'}`)
+        }
       }
+    } else {
+      console.log('✅ Token is still valid')
     }
     
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
