@@ -75,3 +75,11 @@ h1.text-base {
 h1.text-lg {
   font-size: 1.125rem !important;
 }
+
+/* Custom styles for contentEditable placeholder */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  opacity: 1;
+  pointer-events: none;
+}

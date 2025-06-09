@@ -17,11 +17,14 @@ import {
   AlertCircle,
   LogOut,
   User,
-  CheckSquare
+  CheckSquare,
+  Edit3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth, useUser, useTicketCounts, useTaskStats } from '@zynlo/supabase'
 import { useRouter } from 'next/navigation'
+import { ComposeModal } from './compose-modal'
+import { toast } from 'sonner'
 
 const navigation = [
   {
@@ -77,6 +80,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [expandedItems, setExpandedItems] = useState<string[]>(['Inbox', 'Tickets', 'Taken'])
+  const [isComposeOpen, setIsComposeOpen] = useState(false)
   const { user } = useUser()
   const { signOut } = useAuth()
   const { data: counts } = useTicketCounts()
@@ -93,6 +97,51 @@ export function Sidebar() {
   const handleSignOut = async () => {
     await signOut()
     router.push('/login')
+  }
+
+  const handleSendEmail = async (data: {
+    to: string
+    cc?: string
+    bcc?: string
+    subject: string
+    content: string
+    isHtml?: boolean
+  }) => {
+    try {
+      toast.loading('Email wordt verzonden...', { id: 'send-email' })
+
+      const response = await fetch('/api/compose/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send email')
+      }
+
+      const result = await response.json()
+      
+      toast.success('Email succesvol verzonden!', { 
+        id: 'send-email',
+        description: `Verzonden naar ${data.to}`
+      })
+      
+      // Optionally redirect to the new ticket
+      if (result.ticketId) {
+        router.push(`/tickets/${result.ticketId}`)
+      }
+    } catch (error) {
+      console.error('Error sending email:', error)
+      toast.error('Fout bij verzenden van email', { 
+        id: 'send-email',
+        description: error instanceof Error ? error.message : 'Onbekende fout'
+      })
+      throw error
+    }
   }
 
   const getCountForPath = (path: string) => {
@@ -134,109 +183,129 @@ export function Sidebar() {
   }
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gray-900">
-      {/* Logo */}
-      <div className="flex h-16 items-center px-6">
-        <h1 className="text-base font-semibold text-white" style={{ fontSize: '1rem', lineHeight: '1.5rem' }}>Zynlo Helpdesk</h1>
-      </div>
+    <>
+      <div className="flex h-full w-64 flex-col bg-gray-900">
+        {/* Logo */}
+        <div className="flex h-16 items-center px-6">
+          <h1 className="text-base font-semibold text-white" style={{ fontSize: '1rem', lineHeight: '1.5rem' }}>Zynlo Helpdesk</h1>
+        </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          const isExpanded = expandedItems.includes(item.name)
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-
-          return (
-            <div key={item.name}>
-              <button
-                onClick={() => {
-                  if (item.children) {
-                    toggleExpanded(item.name)
-                  } else {
-                    router.push(item.href)
-                  }
-                }}
-                className={cn(
-                  'group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}
-              >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                <span className="flex-1 text-left">{item.name}</span>
-                {item.children && (
-                  <span className="ml-auto">
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </span>
-                )}
-              </button>
-
-              {item.children && isExpanded && (
-                <div className="mt-1 space-y-1">
-                  {item.children.map((child) => {
-                    const childIsActive = pathname === child.href
-                    const count = getCountForPath(child.href)
-
-                    return (
-                      <Link
-                        key={child.name}
-                        href={child.href}
-                        className={cn(
-                          'group flex items-center rounded-md py-2 pl-11 pr-3 text-sm transition-colors',
-                          childIsActive
-                            ? 'bg-gray-800 text-white'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        )}
-                      >
-                        {child.icon ? (
-                          <child.icon className="mr-3 h-4 w-4" />
-                        ) : (
-                          <Hash className="mr-3 h-4 w-4" />
-                        )}
-                        <span className="flex-1">{child.name}</span>
-                        {count > 0 && (
-                          <span className="ml-auto rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-300">
-                            {count}
-                          </span>
-                        )}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </nav>
-
-      {/* User menu */}
-      <div className="border-t border-gray-800 p-4">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-medium text-white">
-              {user?.email?.[0]?.toUpperCase() || 'U'}
-            </div>
-          </div>
-          <div className="ml-3 flex-1">
-            <p className="text-sm font-medium text-white">
-              {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
-            </p>
-            <p className="text-xs text-gray-400">{user?.email}</p>
-          </div>
+        {/* Compose Button */}
+        <div className="px-3 pb-4">
           <button
-            onClick={handleSignOut}
-            className="ml-auto rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-white"
-            title="Uitloggen"
+            onClick={() => setIsComposeOpen(true)}
+            className="flex w-full items-center justify-center space-x-2 rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
           >
-            <LogOut className="h-4 w-4" />
+            <Edit3 className="h-4 w-4" />
+            <span>Nieuw gesprek</span>
           </button>
         </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 px-3">
+          {navigation.map((item) => {
+            const isExpanded = expandedItems.includes(item.name)
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+
+            return (
+              <div key={item.name}>
+                <button
+                  onClick={() => {
+                    if (item.children) {
+                      toggleExpanded(item.name)
+                    } else {
+                      router.push(item.href)
+                    }
+                  }}
+                  className={cn(
+                    'group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-gray-800 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  )}
+                >
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  <span className="flex-1 text-left">{item.name}</span>
+                  {item.children && (
+                    <span className="ml-auto">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </span>
+                  )}
+                </button>
+
+                {item.children && isExpanded && (
+                  <div className="mt-1 space-y-1">
+                    {item.children.map((child) => {
+                      const childIsActive = pathname === child.href
+                      const count = getCountForPath(child.href)
+
+                      return (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          className={cn(
+                            'group flex items-center rounded-md py-2 pl-11 pr-3 text-sm transition-colors',
+                            childIsActive
+                              ? 'bg-gray-800 text-white'
+                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                          )}
+                        >
+                          {child.icon ? (
+                            <child.icon className="mr-3 h-4 w-4" />
+                          ) : (
+                            <Hash className="mr-3 h-4 w-4" />
+                          )}
+                          <span className="flex-1">{child.name}</span>
+                          {count > 0 && (
+                            <span className="ml-auto rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-300">
+                              {count}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+
+        {/* User menu */}
+        <div className="border-t border-gray-800 p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-medium text-white">
+                {user?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-white">
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+              </p>
+              <p className="text-xs text-gray-400">{user?.email}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="ml-auto rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-white"
+              title="Uitloggen"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Compose Modal */}
+      <ComposeModal
+        isOpen={isComposeOpen}
+        onClose={() => setIsComposeOpen(false)}
+        onSend={handleSendEmail}
+      />
+    </>
   )
 } 
