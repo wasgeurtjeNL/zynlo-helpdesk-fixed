@@ -229,17 +229,49 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
   }
 
   const getInitials = (name: string | null | undefined, email: string | null | undefined): string => {
-    if (name) {
-      const parts = name.split(' ')
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      }
-      return name.substring(0, 2).toUpperCase()
+    if (name && name.trim()) {
+      return name.trim().split(' ').map(word => word[0]?.toUpperCase()).slice(0, 2).join('')
     }
     if (email) {
-      return email.substring(0, 2).toUpperCase()
+      return email.slice(0, 2).toUpperCase()
     }
     return '??'
+  }
+
+  // Generate consistent color for customer based on their email or name
+  const getCustomerColor = (customer: any): string => {
+    const identifier = customer?.email || customer?.name || 'unknown'
+    
+    // Trengo-like color palette
+    const colors = [
+      'bg-blue-500',      // #3B82F6
+      'bg-emerald-500',   // #10B981  
+      'bg-purple-500',    // #8B5CF6
+      'bg-pink-500',      // #EC4899
+      'bg-orange-500',    // #F97316
+      'bg-teal-500',      // #14B8A6
+      'bg-indigo-500',    // #6366F1
+      'bg-red-500',       // #EF4444
+      'bg-yellow-500',    // #EAB308
+      'bg-cyan-500',      // #06B6D4
+      'bg-violet-500',    // #7C3AED
+      'bg-rose-500',      // #F43F5E
+      'bg-lime-500',      // #84CC16
+      'bg-amber-500',     // #F59E0B
+      'bg-green-500',     // #22C55E
+      'bg-sky-500',       // #0EA5E9
+    ]
+    
+    // Simple hash function to consistently map identifier to color
+    let hash = 0
+    for (let i = 0; i < identifier.length; i++) {
+      const char = identifier.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    
+    const colorIndex = Math.abs(hash) % colors.length
+    return colors[colorIndex]
   }
 
   const handleBulkDelete = async () => {
@@ -544,34 +576,37 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
               <div
                 key={ticket.id}
                 className={cn(
-                  "group flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors relative",
-                  isSelected && "bg-blue-50 hover:bg-blue-50",
-                  selectedTickets.has(ticket.id) && "bg-gray-50"
+                  "group flex items-start gap-3 px-4 py-4 hover:bg-gray-50/70 cursor-pointer transition-all duration-200 relative border-l-4 border-transparent",
+                  isSelected && "bg-blue-50/50 hover:bg-blue-50/70 border-l-blue-400",
+                  selectedTickets.has(ticket.id) && "bg-gray-50/70"
                 )}
                 onClick={() => ticket.number != null && handleTicketClick(ticket.number)}
               >
                 {/* Checkbox */}
-                <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                <div className="pt-1.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => handleSelectTicket(ticket.id)}
                     className={cn(
-                      "flex items-center transition-opacity",
+                      "flex items-center transition-all duration-200",
                       selectedTickets.has(ticket.id) || selectedTickets.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
                     {selectedTickets.has(ticket.id) ? (
-                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-gray-400" />
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-blue-400 transition-colors" />
                     )}
                   </button>
                 </div>
 
                 {/* Avatar */}
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-gray-400 text-white flex items-center justify-center text-sm font-medium">
+                  <div className={cn(
+                    getCustomerColor(ticket.customer), 
+                    "w-12 h-12 rounded-full text-white flex items-center justify-center text-sm font-semibold shadow-sm border-2 border-white"
+                  )}>
                     {initials}
                   </div>
                 </div>
@@ -579,42 +614,43 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   {/* Header row */}
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-gray-900 truncate">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <h3 className="font-semibold text-base text-gray-900 truncate leading-tight">
                         {customerName}
                       </h3>
-                      <span className="text-xs text-gray-500 flex-shrink-0">
+                      <span className="text-xs text-gray-400 flex-shrink-0 font-medium">
                         {ticket.number && `#${ticket.number}`}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       {ticket.priority === 'urgent' && (
-                        <AlertCircle className="w-4 h-4 text-red-500" />
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       )}
                       <StatusIcon.icon className={cn("w-4 h-4", StatusIcon.color)} />
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-400 font-medium">
                         {formatDate(ticket.updated_at || ticket.created_at)}
                       </span>
                     </div>
                   </div>
 
                   {/* Subject */}
-                  <p className="text-sm font-medium text-gray-800 truncate mb-1">
+                  <p className="text-sm font-medium text-gray-800 truncate mb-2 leading-relaxed">
                     {ticket.subject}
                   </p>
 
                   {/* Preview */}
-                  <p className="text-xs text-gray-500 line-clamp-2">
+                  <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
                     {preview}
                   </p>
 
                   {/* Tags/Labels if any */}
                   {ticket.assignee && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-400">
-                        Toegewezen aan {ticket.assignee.full_name || ticket.assignee.email}
-                      </span>
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {ticket.assignee.full_name || ticket.assignee.email}
+                      </div>
                     </div>
                   )}
                 </div>
