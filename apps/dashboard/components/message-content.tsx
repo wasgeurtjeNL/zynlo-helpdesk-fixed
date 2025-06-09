@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { Shield, ShieldOff, Eye, EyeOff, AlertTriangle, Loader2, Paperclip, Download, FileText, Image as ImageIcon } from 'lucide-react'
+import { Shield, ShieldOff, Eye, EyeOff, AlertTriangle, Loader2, Paperclip, Download, FileText, Image as ImageIcon, Bug } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { prepareMessageContent, extractTextFromHtml, type HtmlContentOptions } from '@/lib/html-content'
 import { useMessageAttachments } from '@zynlo/supabase'
@@ -33,6 +33,9 @@ export function MessageContent({
   const [showRaw, setShowRaw] = useState(false)
   const [isProcessing, setIsProcessing] = useState(true)
   const [processedContent, setProcessedContent] = useState<any>(null)
+  const [iframeError, setIframeError] = useState<string | null>(null)
+  const [useIframe, setUseIframe] = useState(true)
+  const [showDebug, setShowDebug] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState(400)
 
@@ -51,13 +54,27 @@ export function MessageContent({
     
     // Process in next tick to avoid blocking UI
     const timer = setTimeout(() => {
-      const processed = prepareMessageContent(content, contentType, options)
-      setProcessedContent(processed)
+      try {
+        const processed = prepareMessageContent(content, contentType, options)
+        setProcessedContent(processed)
+        console.log('[MessageContent] Processed:', {
+          isHtml: processed.isHtml,
+          sanitized: processed.sanitized,
+          contentLength: processed.content.length,
+          originalLength: content.length,
+          useIframe,
+          environment: process.env.NODE_ENV
+        })
+      } catch (error) {
+        console.error('[MessageContent] Processing error:', error)
+        setIframeError(`Processing error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        setUseIframe(false)
+      }
       setIsProcessing(false)
     }, 0)
 
     return () => clearTimeout(timer)
-  }, [content, contentType, safeMode, detectHtml])
+  }, [content, contentType, safeMode, detectHtml, useIframe])
 
   const hasHtmlContent = processedContent?.isHtml && !safeMode
 
@@ -69,7 +86,7 @@ export function MessageContent({
 
   // Update iframe height based on content
   useEffect(() => {
-    if (!hasHtmlContent || showRaw || !iframeRef.current) return
+    if (!hasHtmlContent || showRaw || !iframeRef.current || !useIframe) return
 
     const updateHeight = () => {
       try {
@@ -77,9 +94,11 @@ export function MessageContent({
         if (iframe?.contentDocument?.body) {
           const newHeight = iframe.contentDocument.body.scrollHeight
           setIframeHeight(Math.max(100, newHeight + 40))
+          console.log('[MessageContent] Updated iframe height:', newHeight)
         }
       } catch (e) {
-        // Ignore cross-origin errors
+        console.warn('[MessageContent] Height update failed:', e)
+        // Don't set error here as this is expected for cross-origin
       }
     }
 
@@ -93,7 +112,14 @@ export function MessageContent({
       clearTimeout(timer)
       clearInterval(interval)
     }
-  }, [hasHtmlContent, showRaw, processedContent])
+  }, [hasHtmlContent, showRaw, processedContent, useIframe])
+
+  // Handle iframe load errors
+  const handleIframeError = (error: string) => {
+    console.error('[MessageContent] Iframe error:', error)
+    setIframeError(error)
+    setUseIframe(false)
+  }
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <ImageIcon className="w-4 h-4" />
@@ -167,6 +193,46 @@ export function MessageContent({
                 </>
               )}
             </button>
+            {iframeError && (
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                title="Show debug info"
+              >
+                <Bug className="w-3 h-3" />
+                <span>Debug</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Debug info */}
+      {showDebug && iframeError && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 text-xs">
+          <div className="font-medium text-red-800 mb-2">Debug Information:</div>
+          <div className="space-y-1 text-red-700">
+            <div>Error: {iframeError}</div>
+            <div>Environment: {process.env.NODE_ENV}</div>
+            <div>Use iframe: {useIframe ? 'Yes' : 'No'}</div>
+            <div>Content type: {contentType || 'Not specified'}</div>
+            <div>Content length: {content.length}</div>
+            <div>Is HTML: {processedContent?.isHtml ? 'Yes' : 'No'}</div>
+            <div>Sanitized: {processedContent?.sanitized ? 'Yes' : 'No'}</div>
+          </div>
+          <div className="mt-2">
+            <button
+              onClick={() => setUseIframe(true)}
+              className="text-xs bg-red-100 hover:bg-red-200 px-2 py-1 rounded mr-2"
+            >
+              Retry iframe
+            </button>
+            <button
+              onClick={() => setUseIframe(false)}
+              className="text-xs bg-red-100 hover:bg-red-200 px-2 py-1 rounded"
+            >
+              Use fallback
+            </button>
           </div>
         </div>
       )}
@@ -179,128 +245,156 @@ export function MessageContent({
             {content}
           </pre>
         ) : hasHtmlContent ? (
-          // Render as HTML in isolated iframe
-          <iframe
-            ref={iframeRef}
-            className="w-full border-0 overflow-hidden bg-white"
-            style={{ height: `${iframeHeight}px` }}
-            sandbox="allow-same-origin allow-popups"
-            srcDoc={`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <base target="_blank">
-                <style>
-                  /* Reset styles */
-                  * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                  }
-                  
-                  /* Body styles */
-                  body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                    font-size: 14px;
-                    line-height: 1.6;
-                    color: #333;
-                    background: #fff;
-                    padding: 20px;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                  }
-                  
-                  /* Basic typography */
-                  p { margin: 1em 0; }
-                  h1, h2, h3, h4, h5, h6 { margin: 1em 0 0.5em; font-weight: bold; }
-                  h1 { font-size: 2em; }
-                  h2 { font-size: 1.5em; }
-                  h3 { font-size: 1.17em; }
-                  h4 { font-size: 1em; }
-                  h5 { font-size: 0.83em; }
-                  h6 { font-size: 0.67em; }
-                  
-                  /* Links */
-                  a {
-                    color: #0066cc;
-                    text-decoration: underline;
-                  }
-                  a:hover {
-                    color: #0052a3;
-                  }
-                  
-                  /* Images */
-                  img {
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                    margin: 1em 0;
-                  }
-                  
-                  /* Tables */
-                  table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 1em 0;
-                  }
-                  
-                  /* Lists */
-                  ul, ol {
-                    margin: 1em 0;
-                    padding-left: 2em;
-                  }
-                  li {
-                    margin: 0.5em 0;
-                  }
-                  
-                  /* Blockquotes */
-                  blockquote {
-                    margin: 1em 0;
-                    padding-left: 1em;
-                    border-left: 4px solid #ddd;
-                    color: #666;
-                  }
-                  
-                  /* Horizontal rules */
-                  hr {
-                    margin: 2em 0;
-                    border: none;
-                    border-top: 1px solid #ddd;
-                  }
-                  
-                  /* Buttons */
-                  button, a.button {
-                    display: inline-block;
-                    padding: 10px 20px;
-                    background: #0066cc;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 4px;
-                    border: none;
-                    cursor: pointer;
-                    margin: 0.5em 0;
-                  }
-                  button:hover, a.button:hover {
-                    background: #0052a3;
-                  }
-                  
-                  /* Email specific fixes */
-                  center { text-align: center; }
-                  .preheader { display: none !important; }
-                  
-                  /* Responsive */
-                  @media (max-width: 600px) {
-                    body { padding: 10px; }
-                    table { width: 100% !important; }
-                  }
-                </style>
-              </head>
-              <body>${processedContent.content}</body>
-              </html>
-            `}
-          />
+          // Render as HTML
+          useIframe && !iframeError ? (
+            // Try iframe first
+            <iframe
+              ref={iframeRef}
+              className="w-full border-0 overflow-hidden bg-white rounded"
+              style={{ height: `${iframeHeight}px` }}
+              sandbox="allow-same-origin allow-popups"
+              onError={() => handleIframeError('Iframe failed to load')}
+              onLoad={() => {
+                console.log('[MessageContent] Iframe loaded successfully')
+                // Clear any previous errors
+                setIframeError(null)
+              }}
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <base target="_blank">
+                  <style>
+                    /* Reset styles */
+                    * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                    }
+                    
+                    /* Body styles */
+                    body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                      font-size: 14px;
+                      line-height: 1.6;
+                      color: #333;
+                      background: #fff;
+                      padding: 20px;
+                      word-wrap: break-word;
+                      overflow-wrap: break-word;
+                    }
+                    
+                    /* Basic typography */
+                    p { margin: 1em 0; }
+                    h1, h2, h3, h4, h5, h6 { margin: 1em 0 0.5em; font-weight: bold; }
+                    h1 { font-size: 2em; }
+                    h2 { font-size: 1.5em; }
+                    h3 { font-size: 1.17em; }
+                    h4 { font-size: 1em; }
+                    h5 { font-size: 0.83em; }
+                    h6 { font-size: 0.67em; }
+                    
+                    /* Links */
+                    a {
+                      color: #0066cc;
+                      text-decoration: underline;
+                    }
+                    a:hover {
+                      color: #0052a3;
+                    }
+                    
+                    /* Images */
+                    img {
+                      max-width: 100%;
+                      height: auto;
+                      display: block;
+                      margin: 1em 0;
+                    }
+                    
+                    /* Tables */
+                    table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      margin: 1em 0;
+                    }
+                    
+                    /* Lists */
+                    ul, ol {
+                      margin: 1em 0;
+                      padding-left: 2em;
+                    }
+                    li {
+                      margin: 0.5em 0;
+                    }
+                    
+                    /* Blockquotes */
+                    blockquote {
+                      margin: 1em 0;
+                      padding-left: 1em;
+                      border-left: 4px solid #ddd;
+                      color: #666;
+                    }
+                    
+                    /* Horizontal rules */
+                    hr {
+                      margin: 2em 0;
+                      border: none;
+                      border-top: 1px solid #ddd;
+                    }
+                    
+                    /* Buttons */
+                    button, a.button {
+                      display: inline-block;
+                      padding: 10px 20px;
+                      background: #0066cc;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 4px;
+                      border: none;
+                      cursor: pointer;
+                      margin: 0.5em 0;
+                    }
+                    button:hover, a.button:hover {
+                      background: #0052a3;
+                    }
+                    
+                    /* Email specific fixes */
+                    center { text-align: center; }
+                    .preheader { display: none !important; }
+                    
+                    /* Responsive */
+                    @media (max-width: 600px) {
+                      body { padding: 10px; }
+                      table { width: 100% !important; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  ${processedContent.content}
+                </body>
+                </html>
+              `}
+            />
+          ) : (
+            // Fallback: direct HTML rendering with dangerouslySetInnerHTML
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+              <div className="text-xs text-yellow-700 mb-2">
+                ⚠️ Using fallback HTML rendering (iframe not available)
+              </div>
+              <div 
+                className="prose prose-sm max-w-none"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: '#333'
+                }}
+                dangerouslySetInnerHTML={{ __html: processedContent.content }} 
+              />
+            </div>
+          )
         ) : safeMode && processedContent.isHtml ? (
           // Safe mode - show plain text preview
           <div className="space-y-2">
@@ -320,33 +414,32 @@ export function MessageContent({
 
       {/* Attachments */}
       {attachments.length > 0 && (
-        <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Paperclip className="w-3 h-3" />
-            <span>{attachments.length} bijlage{attachments.length > 1 ? 'n' : ''}</span>
+        <div className="space-y-2">
+          <div className="text-xs text-gray-500 font-medium">
+            Bijlagen ({attachments.length})
           </div>
           <div className="space-y-1">
-            {attachments.map((attachment: any) => (
-              <a
-                key={attachment.id}
-                href={attachment.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <div className="flex-shrink-0">
-                  {getFileIcon(attachment.file_type)}
-                </div>
+            {attachments.map((attachment: any, index: number) => (
+              <div key={attachment.id || index} className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
+                {getFileIcon(attachment.file_type || '')}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700 truncate group-hover:text-gray-900">
+                  <div className="text-xs font-medium text-gray-900 truncate">
                     {attachment.file_name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(attachment.file_size)}
-                  </p>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {formatFileSize(attachment.file_size || 0)} • {attachment.file_type || 'Unknown type'}
+                  </div>
                 </div>
-                <Download className="w-4 h-4 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
-              </a>
+                <a
+                  href={attachment.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Download bijlage"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
+              </div>
             ))}
           </div>
         </div>
