@@ -92,9 +92,9 @@ import { useRouter } from 'next/navigation'
 import { formatDistanceToNow, format } from 'date-fns'
 import { nl } from 'date-fns/locale'
 import { showToast } from './toast'
+import { createClient } from '@supabase/supabase-js'
 import { ActiveUsers } from './presence/active-users'
 import { TypingIndicator } from './presence/typing-indicator'
-import { ActivityNotificationDemo } from './activity-notification-demo'
 
 // Animation imports
 import { motion, AnimatePresence } from 'framer-motion'
@@ -121,6 +121,12 @@ const priorityOptions = [
   { value: 'high' as TicketPriority, label: 'Hoog', color: 'text-orange-500' },
   { value: 'urgent' as TicketPriority, label: 'Urgent', color: 'text-red-500' },
 ]
+
+// Initialize Supabase client
+const supabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 const CHANNEL_ICONS = {
   email: <Mail className="h-4 w-4" />,
@@ -760,7 +766,7 @@ function ReplyPanel({ ticket, onSendMessage, userSignature, visible, onScroll }:
       const previousMessages = ticket.messages?.slice(-5) || []
 
       // Get the current session to retrieve auth token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession()
       
       if (sessionError || !session) {
         console.error('Failed to get session:', sessionError)
@@ -1807,8 +1813,7 @@ export function TicketDetail({ ticketNumber }: TicketDetailProps) {
             )}
           </div>
         </div>
-        <ActivityNotificationDemo />
-      </div>
-    </div>
+            </div>
+          </div>
   )
 } 

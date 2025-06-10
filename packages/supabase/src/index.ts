@@ -34,10 +34,6 @@ export * from './hooks/signatures';
 export * from './hooks/attachments';
 export * from './hooks/savedReplies';
 export * from './hooks/useChannels';
-export * from './hooks/useComments';
-export * from './hooks/useMentions';
-export * from './hooks/useCollaboration';
-export * from './hooks/useActivity';
 
 // AI usage hooks
 export { 

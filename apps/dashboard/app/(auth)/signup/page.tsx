@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@zynlo/supabase'
+import { supabase } from '@zynlo/supabase'
 import { Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function SignupPage() {
   const router = useRouter()
-  const { signUp } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -23,7 +22,18 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      await signUp(email, password, fullName)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      })
+
+      if (error) throw error
+
       setSuccess(true)
       // Redirect to login after 3 seconds
       setTimeout(() => {

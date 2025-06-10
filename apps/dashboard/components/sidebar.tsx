@@ -21,11 +21,10 @@ import {
   Edit3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth, useUser, useTicketCounts, useTaskStats } from '@zynlo/supabase'
+import { useTicketCounts, useTaskStats } from '@zynlo/supabase'
+import { useAuthContext } from '@/components/auth-provider'
 import { useRouter } from 'next/navigation'
 import { ComposeModal } from './compose-modal'
-import { PresenceStatusSelectorCompact } from './presence-status-selector'
-import { MentionNotifications } from './mention-notifications'
 import { toast } from 'sonner'
 
 const navigation = [
@@ -83,8 +82,7 @@ export function Sidebar() {
   const router = useRouter()
   const [expandedItems, setExpandedItems] = useState<string[]>(['Inbox', 'Tickets', 'Taken'])
   const [isComposeOpen, setIsComposeOpen] = useState(false)
-  const { user } = useUser()
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuthContext()
   const { data: counts } = useTicketCounts()
   const { data: taskStats } = useTaskStats(user?.id || '')
 
@@ -98,7 +96,7 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push('/login')
+    // AuthProvider will handle the redirect
   }
 
   const handleSendEmail = async (data: {
@@ -189,9 +187,8 @@ export function Sidebar() {
     <>
       <div className="flex h-full w-64 flex-col bg-gray-900">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex h-16 items-center px-6">
           <h1 className="text-base font-semibold text-white" style={{ fontSize: '1rem', lineHeight: '1.5rem' }}>Zynlo Helpdesk</h1>
-          <MentionNotifications />
         </div>
 
         {/* Compose Button */}
@@ -282,13 +279,9 @@ export function Sidebar() {
         {/* User menu */}
         <div className="border-t border-gray-800 p-4">
           <div className="flex items-center">
-            <div className="flex-shrink-0 relative">
+            <div className="flex-shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-medium text-white">
                 {user?.email?.[0]?.toUpperCase() || 'U'}
-              </div>
-              {/* Presence indicator on avatar */}
-              <div className="absolute -bottom-1 -right-1">
-                <PresenceStatusSelectorCompact />
               </div>
             </div>
             <div className="ml-3 flex-1">

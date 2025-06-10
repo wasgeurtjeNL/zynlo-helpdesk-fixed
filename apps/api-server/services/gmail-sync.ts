@@ -56,6 +56,13 @@ export class GmailSyncService {
         throw new Error('Channel not found')
       }
 
+      // Check if channel has valid OAuth tokens
+      const settings = channel.settings || {}
+      if (!settings.oauth_token && !settings.refresh_token) {
+        console.warn(`⚠️ Gmail channel ${channelId} has no OAuth tokens - skipping sync`)
+        return { processed: 0, errors: 0, updated: 0 }
+      }
+
       // Set up OAuth client
       this.oauth2Client.setCredentials({
         access_token: channel.settings.oauth_token,
@@ -261,7 +268,7 @@ export class GmailSyncService {
       // Get all active Gmail channels
       const { data: channels, error } = await supabase
         .from('channels')
-        .select('id')
+        .select('id, settings')
         .eq('type', 'email')
         .eq('provider', 'gmail')
         .eq('is_active', true)
@@ -270,19 +277,29 @@ export class GmailSyncService {
         throw error
       }
 
-      console.log(`Starting sync for ${channels?.length || 0} Gmail channels`)
+      // Filter out channels without OAuth tokens
+      const validChannels = (channels || []).filter(channel => {
+        const settings = channel.settings || {}
+        const hasTokens = settings.oauth_token || settings.refresh_token
+        if (!hasTokens) {
+          console.log(`⚠️ Skipping channel ${channel.id}: no OAuth tokens`)
+        }
+        return hasTokens
+      })
 
-      // Sync each channel
+      console.log(`Starting sync for ${validChannels.length} Gmail channels (${channels?.length || 0} total found)`)
+
+      // Sync each valid channel
       const results = await Promise.allSettled(
-        (channels || []).map(channel => this.syncChannel(channel.id))
+        validChannels.map(channel => this.syncChannel(channel.id))
       )
 
       // Log results
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
-          console.log(`Channel ${channels![index].id} synced: ${result.value.processed} messages`)
+          console.log(`Channel ${validChannels[index].id} synced: ${result.value.processed} messages`)
         } else {
-          console.error(`Channel ${channels![index].id} sync failed:`, result.reason)
+          console.error(`Channel ${validChannels[index].id} sync failed:`, result.reason)
         }
       })
 

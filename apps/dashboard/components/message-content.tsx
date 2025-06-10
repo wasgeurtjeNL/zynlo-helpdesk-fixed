@@ -93,13 +93,8 @@ export function MessageContent({
         const iframe = iframeRef.current
         if (iframe?.contentDocument?.body) {
           const newHeight = iframe.contentDocument.body.scrollHeight
-          const adjustedHeight = Math.max(100, newHeight + 40)
-          
-          // Only update and log if height actually changed
-          if (adjustedHeight !== iframeHeight) {
-            setIframeHeight(adjustedHeight)
-            console.log('[MessageContent] Updated iframe height:', newHeight, '->', adjustedHeight)
-          }
+          setIframeHeight(Math.max(100, newHeight + 40))
+          console.log('[MessageContent] Updated iframe height:', newHeight)
         }
       } catch (e) {
         console.warn('[MessageContent] Height update failed:', e)
@@ -110,14 +105,14 @@ export function MessageContent({
     // Initial update
     const timer = setTimeout(updateHeight, 200)
     
-    // Reduce frequency - check every 5 seconds instead of every second
-    const interval = setInterval(updateHeight, 5000)
+    // Watch for changes
+    const interval = setInterval(updateHeight, 1000)
 
     return () => {
       clearTimeout(timer)
       clearInterval(interval)
     }
-  }, [hasHtmlContent, showRaw, processedContent, useIframe, iframeHeight])
+  }, [hasHtmlContent, showRaw, processedContent, useIframe])
 
   // Handle iframe load errors
   const handleIframeError = (error: string) => {

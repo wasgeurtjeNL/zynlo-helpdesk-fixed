@@ -28,7 +28,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@zynlo/supabase'
+import { useAuthContext } from '@/components/auth-provider'
 import { useEffect, useState } from 'react'
 import { supabase } from '@zynlo/supabase'
 
@@ -94,7 +94,7 @@ const settingsNavigation = [
 
 export function SettingsSidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user } = useAuthContext()
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {

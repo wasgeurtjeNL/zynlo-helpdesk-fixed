@@ -75,25 +75,20 @@ app.post('/sync/gmail/:channelId', async (req, res) => {
   }
 })
 
-// Start cron job for Gmail sync (every 5 minutes) - only if OAuth is configured
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  cron.schedule('*/5 * * * *', async () => {
-    console.log('Running Gmail sync cron job...')
-    try {
-      await gmailSync.syncAllChannels()
-    } catch (error) {
-      console.error('Cron job error:', error)
-    }
-  })
-  console.log('Gmail sync cron job scheduled to run every 5 minutes')
-} else {
-  console.warn('⚠️  Gmail sync disabled: Google OAuth credentials not configured')
-  console.warn('   To enable Gmail sync, add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your environment')
-}
+// Start cron job for Gmail sync (every 5 minutes)
+cron.schedule('*/5 * * * *', async () => {
+  console.log('Running Gmail sync cron job...')
+  try {
+    await gmailSync.syncAllChannels()
+  } catch (error) {
+    console.error('Cron job error:', error)
+  }
+})
 
 // Start server
 app.listen(PORT, async () => {
   console.log(`API server running on port ${PORT}`)
+  console.log('Gmail sync cron job scheduled to run every 5 minutes')
   console.log('Email webhook available at /webhooks/email')
   console.log('WhatsApp webhook available at /webhooks/whatsapp/:project_id')
   console.log('Email send API available at /email/send')

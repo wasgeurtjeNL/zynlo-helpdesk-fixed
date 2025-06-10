@@ -1,19 +1,53 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Mail, Plus, Settings, Trash2, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/lib/ui'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, useUser } from '@zynlo/supabase'
 import { toast } from 'sonner'
 
 export default function EmailChannelsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const { user } = useUser()
   const [isAddingChannel, setIsAddingChannel] = useState(false)
   const [channelName, setChannelName] = useState('')
+
+  // Handle OAuth success/error messages
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    
+    if (success === 'gmail_connected') {
+      toast.success('Gmail account succesvol gekoppeld!', {
+        description: 'Je Gmail account is nu actief en kan emails ontvangen.',
+        duration: 5000
+      })
+      // Refresh the channels data
+      queryClient.invalidateQueries({ queryKey: ['email-channels'] })
+      // Clean up URL
+      const url = new URL(window.location.href)
+      url.searchParams.delete('success')
+      window.history.replaceState({}, '', url.toString())
+    } else if (error) {
+      let errorMessage = 'Er is een fout opgetreden bij het koppelen van je Gmail account.'
+      if (error === 'oauth_failed') errorMessage = 'OAuth autorisatie mislukt.'
+      if (error === 'no_code') errorMessage = 'Geen autorisatiecode ontvangen van Google.'
+      if (error === 'oauth_callback_failed') errorMessage = 'OAuth callback verwerking mislukt.'
+      
+      toast.error('Gmail koppeling mislukt', {
+        description: errorMessage,
+        duration: 7000
+      })
+      // Clean up URL
+      const url = new URL(window.location.href)
+      url.searchParams.delete('error')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams, queryClient])
 
   // Fetch email channels
   const { data: channels, isLoading, error } = useQuery({
@@ -67,12 +101,13 @@ export default function EmailChannelsPage() {
       return
     }
 
-    // Redirect to Next.js API route for OAuth
+    // Use dashboard OAuth route (now works with environment variables)
     const params = new URLSearchParams({
       channelName: channelName,
       userId: user?.id || ''
     })
     
+    // Use dashboard route which now has proper credentials
     window.location.href = `/api/auth/gmail/connect?${params.toString()}`
   }
 
@@ -80,7 +115,7 @@ export default function EmailChannelsPage() {
     try {
       // Always use relative API routes (same origin)
       const response = await fetch(`/api/sync/gmail/${channelId}`, {
-        method: 'POST',
+          method: 'POST',
       })
       const result = await response.json()
       if (!response.ok) {

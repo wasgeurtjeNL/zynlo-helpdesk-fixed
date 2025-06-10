@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@zynlo/supabase';
+import { supabase } from '@zynlo/supabase';
+import { useAuthContext } from '@/components/auth-provider';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn, user } = useAuth();
+  const { user } = useAuthContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +35,21 @@ export default function LoginPage() {
       console.log('Attempting login with:', email);
       setDebugInfo('Starting login...');
 
-      const result = await signIn(email, password);
-      console.log('Login result:', result);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      console.log('Login result:', { data, error });
+
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
+      }
+
       setDebugInfo('Login successful! Redirecting...');
 
-      // Force a page reload to ensure middleware picks up the new session
-      window.location.href = searchParams.get('redirectedFrom') || '/inbox/nieuw';
+      // The AuthProvider will handle the redirect
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Er is een fout opgetreden bij het inloggen');

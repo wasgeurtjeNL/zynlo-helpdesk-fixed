@@ -79,17 +79,34 @@ export class EmailPoller {
       return;
     }
 
-    // Skip Gmail OAuth channels if credentials not configured
-    if (settings.provider === 'gmail' && (settings.oauth_token || settings.oauth_refresh_token)) {
+    // Get OAuth tokens for this channel if it's a Gmail channel
+    let oauthTokens = null;
+    if (channel.provider === 'gmail') {
+      // Check if Google OAuth credentials are configured in environment
       if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-        console.log(`⚠️ Skipping Gmail OAuth channel ${channel.id}: Google OAuth credentials not configured`);
+        console.log(`⚠️ Skipping Gmail OAuth channel ${channel.id}: Google OAuth credentials not configured in environment`);
         return;
       }
+
+      // Fetch OAuth tokens from oauth_tokens table
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('oauth_tokens')
+        .select('*')
+        .eq('channel_id', channel.id)
+        .eq('provider', 'gmail')
+        .single();
+
+      if (tokenError || !tokenData) {
+        console.log(`⚠️ Skipping Gmail channel ${channel.id}: No OAuth tokens found in database`);
+        return;
+      }
+
+      oauthTokens = tokenData;
     }
 
     const config = {
       id: channel.id,
-      provider: settings.provider || 'other',
+      provider: channel.provider || 'other',
       emailAddress: settings.email_address,
       imapHost: settings.imap_host,
       imapPort: settings.imap_port,
@@ -100,9 +117,11 @@ export class EmailPoller {
       smtpSecure: settings.smtp_secure,
       smtpUsername: settings.smtp_username,
       smtpPassword: settings.smtp_password,
-      oauth2ClientId: settings.oauth2_client_id,
-      oauth2ClientSecret: settings.oauth2_client_secret,
-      oauth2RefreshToken: settings.oauth_refresh_token,
+      // Use environment variables for OAuth client credentials
+      oauth2ClientId: channel.provider === 'gmail' ? process.env.GOOGLE_CLIENT_ID : settings.oauth2_client_id,
+      oauth2ClientSecret: channel.provider === 'gmail' ? process.env.GOOGLE_CLIENT_SECRET : settings.oauth2_client_secret,
+      // Use refresh token from oauth_tokens table
+      oauth2RefreshToken: oauthTokens?.refresh_token || settings.oauth_refresh_token,
       webhookUrl: settings.webhook_url,
     };
 
@@ -110,7 +129,7 @@ export class EmailPoller {
     await emailService.initializeChannel(config);
 
     // Start polling or IDLE based on provider
-    if (settings.provider === 'gmail' || settings.provider === 'outlook') {
+    if (channel.provider === 'gmail' || channel.provider === 'outlook') {
       // Use IDLE for real-time updates
       try {
         await emailService.startIdleConnection(channel.id);

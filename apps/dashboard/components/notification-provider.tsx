@@ -43,14 +43,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const queryClient = useQueryClient()
 
-  // Request browser notification permission on mount
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission)
-      })
-    }
-  }, [])
+  // Browser notification permission request disabled - using only in-app notifications
+  // useEffect(() => {
+  //   if ('Notification' in window && Notification.permission === 'default') {
+  //     Notification.requestPermission().then(permission => {
+  //       console.log('Notification permission:', permission)
+  //     })
+  //   }
+  // }, [])
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => {
@@ -108,25 +108,25 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     queryClient.invalidateQueries({ queryKey: ['tickets'] })
     queryClient.invalidateQueries({ queryKey: ['inbox-counts'] })
 
-    // Show browser notification if permitted
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        const browserNotification = new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-          tag: ticket.id,
-          requireInteraction: true // Keeps notification until user interacts
-        })
+    // Browser notifications disabled - using only in-app toast notifications
+    // if ('Notification' in window && Notification.permission === 'granted') {
+    //   try {
+    //     const browserNotification = new Notification(notification.title, {
+    //       body: notification.message,
+    //       icon: '/favicon.ico',
+    //       tag: ticket.id,
+    //       requireInteraction: true // Keeps notification until user interacts
+    //     })
 
-        // Add click handler to focus the window
-        browserNotification.onclick = () => {
-          window.focus()
-          browserNotification.close()
-        }
-      } catch (error) {
-        console.error('Error showing browser notification:', error)
-      }
-    }
+    //     // Add click handler to focus the window
+    //     browserNotification.onclick = () => {
+    //       window.focus()
+    //       browserNotification.close()
+    //     }
+    //   } catch (error) {
+    //     console.error('Error showing browser notification:', error)
+    //   }
+    // }
   }, [queryClient, removeNotification])
 
   // Subscribe to new tickets
