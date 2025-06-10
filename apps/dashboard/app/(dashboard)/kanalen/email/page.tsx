@@ -49,26 +49,25 @@ export default function EmailChannelsPage() {
     }
   }, [searchParams, queryClient])
 
-  // Fetch email channels
+  // Fetch email channels with OAuth token info
   const { data: channels, isLoading, error } = useQuery({
     queryKey: ['email-channels'],
     queryFn: async () => {
-      console.log('🔍 Fetching email channels...')
-      console.log('🔑 Current user:', user?.id)
-      
       const { data, error } = await supabase
         .from('channels')
-        .select('*')
+        .select(`
+          *,
+          oauth_tokens (
+            id,
+            provider,
+            expires_at,
+            created_at
+          )
+        `)
         .eq('type', 'email')
         .order('created_at', { ascending: false })
 
-      console.log('📊 Query result:', { data, error })
-      console.log('📈 Channels found:', data?.length || 0)
-      
-      if (error) {
-        console.error('❌ Database error:', error)
-        throw error
-      }
+      if (error) throw error
       return data || []
     }
   })
@@ -282,14 +281,7 @@ export default function EmailChannelsPage() {
           </h2>
         </div>
 
-        {/* Debug informatie */}
-        <div className="px-4 py-2 bg-yellow-50 border-b border-yellow-200 text-xs">
-          <strong>🔍 Debug Info:</strong> User ID: {user?.id || 'Geen user'} | 
-          Channels gevonden: {channels?.length || 0} | 
-          Loading: {isLoading ? 'Ja' : 'Nee'} | 
-          Error: {error ? 'Ja' : 'Nee'}
-          {error && <div className="text-red-600 mt-1">Error details: {JSON.stringify(error)}</div>}
-        </div>
+
 
         {channels && channels.length > 0 ? (
           <div className="divide-y divide-gray-200">
@@ -322,6 +314,17 @@ export default function EmailChannelsPage() {
                           )}
                           {channel.is_active ? 'Actief' : 'Inactief'}
                         </span>
+                        {(channel as any).oauth_tokens && (channel as any).oauth_tokens.length > 0 ? (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            OAuth gekoppeld
+                          </span>
+                        ) : (
+                          <span className="text-xs text-red-600 flex items-center gap-1">
+                            <XCircle className="h-3 w-3" />
+                            OAuth ontbreekt
+                          </span>
+                        )}
                         {channel.last_sync && (
                           <span className="text-xs text-gray-500">
                             Laatste sync: {new Date(channel.last_sync).toLocaleString('nl-NL')}
