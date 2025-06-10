@@ -53,13 +53,22 @@ export default function EmailChannelsPage() {
   const { data: channels, isLoading, error } = useQuery({
     queryKey: ['email-channels'],
     queryFn: async () => {
+      console.log('🔍 Fetching email channels...')
+      console.log('🔑 Current user:', user?.id)
+      
       const { data, error } = await supabase
         .from('channels')
         .select('*')
         .eq('type', 'email')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      console.log('📊 Query result:', { data, error })
+      console.log('📈 Channels found:', data?.length || 0)
+      
+      if (error) {
+        console.error('❌ Database error:', error)
+        throw error
+      }
       return data || []
     }
   })
@@ -271,6 +280,15 @@ export default function EmailChannelsPage() {
           <h2 className="text-lg font-medium text-gray-900">
             Geconfigureerde email accounts ({channels?.length || 0})
           </h2>
+        </div>
+
+        {/* Debug informatie */}
+        <div className="px-4 py-2 bg-yellow-50 border-b border-yellow-200 text-xs">
+          <strong>🔍 Debug Info:</strong> User ID: {user?.id || 'Geen user'} | 
+          Channels gevonden: {channels?.length || 0} | 
+          Loading: {isLoading ? 'Ja' : 'Nee'} | 
+          Error: {error ? 'Ja' : 'Nee'}
+          {error && <div className="text-red-600 mt-1">Error details: {JSON.stringify(error)}</div>}
         </div>
 
         {channels && channels.length > 0 ? (
