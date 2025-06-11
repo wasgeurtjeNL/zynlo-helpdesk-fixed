@@ -8,6 +8,8 @@ interface EmailRequest {
   agentEmail?: string
 }
 
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   try {
     const body: EmailRequest = await request.json()
@@ -72,27 +74,7 @@ export async function POST(request: NextRequest) {
 
     console.log('📧 Email details:', { from: fromEmail, to: toEmail, subject })
 
-    // Check if Resend API key is configured
-    const resendApiKey = process.env.RESEND_API_KEY
-    
-    if (!resendApiKey) {
-      console.log('⚠️ RESEND_API_KEY not configured, returning mock success')
-      
-      // Return mock success for testing
-      return NextResponse.json({
-        success: true,
-        messageId: `mock-${Date.now()}`,
-        message: '✅ MOCK EMAIL: Email would be sent to ' + toEmail,
-        mockData: {
-          from: `${fromName} <${fromEmail}>`,
-          to: toEmail,
-          subject: subject,
-          content: content
-        }
-      })
-    }
-
-    // Prepare HTML email content
+    // Build HTML & text versions (needed for any transport)
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -123,6 +105,83 @@ export async function POST(request: NextRequest) {
     `
 
     const textContent = `Hallo ${customerName},\n\n${content}\n\nMet vriendelijke groet,\n${fromName}\n\n---\nTicket #${ticketNumber}`
+
+    // Check if Resend API key is configured
+    const resendApiKey = process.env.RESEND_API_KEY
+    
+    if (!resendApiKey) {
+      // Fallback: send via Gmail SMTP using OAuth2 credentials
+
+      try {
+        const {
+          GMAIL_CLIENT_ID,
+          GMAIL_CLIENT_SECRET,
+          GMAIL_REFRESH_TOKEN,
+          GMAIL_SENDER_EMAIL,
+        } = process.env
+
+        if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !GMAIL_SENDER_EMAIL) {
+          console.warn('⚠️ Gmail OAuth credentials not configured; returning mock success')
+          return NextResponse.json({
+            success: true,
+            messageId: `mock-${Date.now()}`,
+            message: '✅ MOCK EMAIL (no credentials): Email would be sent to ' + toEmail,
+          })
+        }
+
+        const { google } = await import('googleapis')
+        const { default: nodemailer } = await import('nodemailer')
+
+        const oAuth2Client = new google.auth.OAuth2(
+          GMAIL_CLIENT_ID,
+          GMAIL_CLIENT_SECRET
+        )
+        oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN })
+
+        const { token } = await oAuth2Client.getAccessToken()
+
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            type: 'OAuth2',
+            user: GMAIL_SENDER_EMAIL,
+            clientId: GMAIL_CLIENT_ID,
+            clientSecret: GMAIL_CLIENT_SECRET,
+            refreshToken: GMAIL_REFRESH_TOKEN,
+            accessToken: token as string,
+          },
+        })
+
+        const sendInfo = await transporter.sendMail({
+          from: `${fromName} <${GMAIL_SENDER_EMAIL}>`,
+          to: toEmail,
+          subject,
+          html: htmlContent,
+          text: textContent,
+          headers: {
+            'X-Ticket-ID': ticket.id,
+            'X-Ticket-Number': ticketNumber.toString(),
+          },
+        })
+
+        console.log('✅ Email sent via Gmail SMTP:', sendInfo.messageId)
+
+        return NextResponse.json({
+          success: true,
+          messageId: sendInfo.messageId,
+          message: `✅ Email sent successfully to ${toEmail}`,
+        })
+      } catch (smtpError) {
+        console.error('❌ Gmail SMTP error:', smtpError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Email delivery failed via Gmail SMTP',
+          },
+          { status: 500 }
+        )
+      }
+    }
 
     // Send email via Resend API
     console.log('📤 Sending email via Resend API...')

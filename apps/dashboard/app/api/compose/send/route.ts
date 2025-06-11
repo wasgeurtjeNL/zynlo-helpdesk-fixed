@@ -4,12 +4,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import type { Database } from '@zynlo/supabase'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Resend instance may be undefined when key is missing; create lazily
+const resendApiKeyEnv = process.env.RESEND_API_KEY
+const resend = resendApiKeyEnv ? new Resend(resendApiKeyEnv) : null
 
 interface TicketResult {
   ticket_id: string
   conversation_id: string
 }
+
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,7 +99,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send email via Resend
+    // Prepare email options object once
     const emailOptions: any = {
       from: fromAddress,
       to: [to],
@@ -104,21 +108,67 @@ export async function POST(request: NextRequest) {
       text: !isHtml ? content : undefined,
     }
 
-    if (cc) {
-      emailOptions.cc = cc.split(',').map((email: string) => email.trim())
-    }
-    if (bcc) {
-      emailOptions.bcc = bcc.split(',').map((email: string) => email.trim())
-    }
+    if (cc) emailOptions.cc = cc.split(',').map((e: string) => e.trim())
+    if (bcc) emailOptions.bcc = bcc.split(',').map((e: string) => e.trim())
 
-    const { data: emailResult, error: emailError } = await resend.emails.send(emailOptions)
+    let emailId: string | undefined
 
-    if (emailError) {
-      console.error('Failed to send email:', emailError)
-      return NextResponse.json(
-        { error: 'Failed to send email' },
-        { status: 500 }
-      )
+    if (resend) {
+      // Use Resend when key is available
+      const { data: emailResult, error: emailError } = await resend.emails.send(emailOptions)
+
+      if (emailError) {
+        console.error('Failed to send email via Resend:', emailError)
+        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+      }
+
+      emailId = emailResult?.id
+    } else {
+      // Fallback to Gmail SMTP (OAuth2)
+      try {
+        const {
+          GMAIL_CLIENT_ID,
+          GMAIL_CLIENT_SECRET,
+          GMAIL_REFRESH_TOKEN,
+          GMAIL_SENDER_EMAIL,
+        } = process.env
+
+        if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !GMAIL_SENDER_EMAIL) {
+          return NextResponse.json(
+            { error: 'Email not configured (no Resend API key or Gmail OAuth credentials)' },
+            { status: 500 }
+          )
+        }
+
+        const { google } = await import('googleapis')
+        const { default: nodemailer } = await import('nodemailer')
+
+        const oAuth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET)
+        oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN })
+
+        const { token } = await oAuth2Client.getAccessToken()
+
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            type: 'OAuth2',
+            user: GMAIL_SENDER_EMAIL,
+            clientId: GMAIL_CLIENT_ID,
+            clientSecret: GMAIL_CLIENT_SECRET,
+            refreshToken: GMAIL_REFRESH_TOKEN,
+            accessToken: token as string,
+          },
+        })
+
+        const sendInfo = await transporter.sendMail({
+          ...emailOptions,
+        })
+
+        emailId = sendInfo.messageId
+      } catch (smtpError) {
+        console.error('Failed to send email via Gmail SMTP:', smtpError)
+        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+      }
     }
 
     // Create ticket and conversation in database
@@ -131,7 +181,7 @@ export async function POST(request: NextRequest) {
         p_channel: 'email',
         p_priority: 'normal',
         p_metadata: {
-          email_id: emailResult?.id,
+          email_id: emailId,
           sent_by: user.id,
           channel_id: fromChannelId,
           channel_name: channelData?.name,
@@ -163,7 +213,7 @@ export async function POST(request: NextRequest) {
           sender_id: user.id,
           sender_name: userData.full_name || userData.email,
           metadata: {
-            email_id: emailResult?.id,
+            email_id: emailId,
             channel_id: fromChannelId,
             channel_name: channelData?.name,
             from_address: fromAddress,
@@ -176,7 +226,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      emailId: emailResult?.id,
+      emailId: emailId,
       ticketId: typedTicketResult?.ticket_id,
       fromChannel: channelData?.name,
       fromAddress,

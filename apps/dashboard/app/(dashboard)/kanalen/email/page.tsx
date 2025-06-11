@@ -61,7 +61,6 @@ export default function EmailChannelsPage() {
         .from('channels')
         .select('*')
         .eq('type', 'email')
-        .eq('created_by', user!.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -132,19 +131,29 @@ export default function EmailChannelsPage() {
 
   // Initiate Gmail OAuth flow
   const connectGmail = async () => {
-    if (!channelName.trim()) {
-      alert('Vul eerst een naam in voor dit email kanaal')
-      return
-    }
+    // Start Gmail OAuth flow
+    try {
+      const res = await fetch('/api/auth/gmail/init')
+      if (!res.ok) throw new Error('Failed to start OAuth')
+      const { url } = await res.json()
 
-    // Use dashboard OAuth route (now works with environment variables)
-    const params = new URLSearchParams({
-      channelName: channelName,
-      userId: user?.id || ''
-    })
-    
-    // Use dashboard route which now has proper credentials
-    window.location.href = `/api/auth/gmail/connect?${params.toString()}`
+      const popup = window.open(url, 'gmail-oauth', 'width=500,height=620')
+
+      // Listen for success message from callback
+      const handler = (e: MessageEvent) => {
+        if (e.data?.success) {
+          toast.success('Gmail account gekoppeld!')
+          queryClient.invalidateQueries({ queryKey: ['email-channels'] })
+          setIsAddingChannel(false)
+          setChannelName('')
+          window.removeEventListener('message', handler)
+          popup?.close()
+        }
+      }
+      window.addEventListener('message', handler)
+    } catch (err: any) {
+      toast.error('Kon Gmail OAuth niet starten', { description: err.message })
+    }
   }
 
   const syncEmails = async (channelId: string) => {

@@ -36,7 +36,9 @@
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
     "turbo": "^2.5.3",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "googleapis": "^144.0.0",
+    "open": "^9.1.0"
   },
   "engines": {
     "node": ">=18.0.0",
