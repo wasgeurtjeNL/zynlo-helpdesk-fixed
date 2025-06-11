@@ -49,28 +49,56 @@ export default function EmailChannelsPage() {
     }
   }, [searchParams, queryClient])
 
-  // Fetch email channels with OAuth token info
-  const { data: channels, isLoading, error } = useQuery({
-    queryKey: ['email-channels'],
+  // Step 1: Fetch email channels (without joining oauth_tokens to avoid RLS issues)
+  const {
+    data: channels,
+    isLoading,
+  } = useQuery({
+    queryKey: ['email-channels', user?.id],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('channels')
-        .select(`
-          *,
-          oauth_tokens (
-            id,
-            provider,
-            expires_at,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('type', 'email')
+        .eq('created_by', user!.id)
         .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('[EmailChannelsPage] channels fetch error:', error)
+        toast.error('Kanalen ophalen mislukt', {
+          description: error.message,
+        })
+        throw error
+      }
+      console.log('[EmailChannelsPage] channels data:', data)
+      return data || []
+    },
+  })
+
+  // Step 2: Once we have channels, fetch oauth token existence per channel
+  const {
+    data: oauthTokens,
+  } = useQuery({
+    queryKey: ['oauth-tokens', channels?.map((c: any) => c.id) || []],
+    enabled: !!channels && channels.length > 0,
+    queryFn: async () => {
+      const channelIds = (channels as any[]).map((c) => c.id)
+      const { data, error } = await supabase
+        // @ts-ignore - oauth_tokens not yet in generated types
+        .from<any>('oauth_tokens')
+        .select('channel_id')
+        .in('channel_id', channelIds)
 
       if (error) throw error
       return data || []
-    }
+    },
   })
+
+  // Build a Set for quick lookup: does this channel have oauth tokens?
+  const oauthTokenSet = new Set(
+    (oauthTokens as any[])?.map((t) => t.channel_id) || [],
+  )
 
   // Toggle channel active status
   const toggleChannel = useMutation({
@@ -281,8 +309,6 @@ export default function EmailChannelsPage() {
           </h2>
         </div>
 
-
-
         {channels && channels.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {channels.map((channel) => (
@@ -314,7 +340,7 @@ export default function EmailChannelsPage() {
                           )}
                           {channel.is_active ? 'Actief' : 'Inactief'}
                         </span>
-                        {(channel as any).oauth_tokens && (channel as any).oauth_tokens.length > 0 ? (
+                        {oauthTokenSet.has(channel.id) ? (
                           <span className="text-xs text-green-600 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3" />
                             OAuth gekoppeld

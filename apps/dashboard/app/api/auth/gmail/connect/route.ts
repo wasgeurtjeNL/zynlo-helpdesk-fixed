@@ -15,10 +15,9 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Use exact production URL for callback
-    const baseUrl = request.url.includes('localhost') 
-      ? 'http://localhost:3000'
-      : 'https://zynlo-helpdesk-fixed-dashboard-fjrm.vercel.app'
+    // Determine base URL dynamically (supports custom domains)
+    const urlObj = new URL(request.url)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${urlObj.protocol}//${urlObj.host}`
       
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,

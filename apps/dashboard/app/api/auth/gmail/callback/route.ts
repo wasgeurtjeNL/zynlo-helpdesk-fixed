@@ -35,9 +35,8 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey)
     
     // Setup OAuth2 client with consistent callback URL
-    const baseUrl = request.url.includes('localhost') 
-      ? 'http://localhost:3000'
-      : 'https://zynlo-helpdesk-fixed-dashboard-fjrm.vercel.app'
+    const urlObj = new URL(request.url)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${urlObj.protocol}//${urlObj.host}`
       
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -97,9 +96,13 @@ export async function GET(request: NextRequest) {
         .from('channels')
         .update({
           settings: {
+            ...((channel as any)?.settings || {}),
             email_address: emailAddress,
             messages_total: profile?.data.messagesTotal || 0,
-            threads_total: profile?.data.threadsTotal || 0
+            threads_total: profile?.data.threadsTotal || 0,
+            oauth_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            token_expiry: tokens.expiry_date
           },
           is_active: true
         })
@@ -126,7 +129,10 @@ export async function GET(request: NextRequest) {
           settings: {
             email_address: emailAddress,
             messages_total: profile?.data.messagesTotal || 0,
-            threads_total: profile?.data.threadsTotal || 0
+            threads_total: profile?.data.threadsTotal || 0,
+            oauth_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            token_expiry: tokens.expiry_date
           },
           is_active: true,
           created_by: userId
