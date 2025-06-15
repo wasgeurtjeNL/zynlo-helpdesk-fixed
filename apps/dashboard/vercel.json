@@ -4,5 +4,16 @@
   "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
   "outputDirectory": ".next",
   "devCommand": "pnpm dev",
-  "ignoreCommand": "exit 1"
-} 
+  "ignoreCommand": "exit 1",
+  "crons": [
+    {
+      "path": "/api/cron/gmail-sync",
+      "schedule": "* * * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/gmail-sync/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
