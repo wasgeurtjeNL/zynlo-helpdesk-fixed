@@ -22,14 +22,17 @@ Een modern ticketsysteem geïnspireerd door Trengo, gebouwd met cutting-edge tec
 ## 🆕 Recent Updates
 
 ### ✅ Gmail Integration Voltooid (December 2024)
+
 - **Email-to-Ticket Conversie**: Automatische conversie van emails naar tickets
 - **OAuth2 Authentication**: Veilige Gmail account koppeling
 - **Smart Customer Management**: Automatische klant detectie en aanmaak
 - **Duplicate Detection**: Voorkomt dubbele ticket creatie
 - **Real-time Sync**: Live email synchronisatie met Gmail API
+- **Push Notifications**: Instant email sync via Google Cloud Pub/Sub (< 1 seconde)
 - **Comprehensive Metadata**: Behoudt alle email headers en content
 
 ### 🔧 Technische Verbeteringen
+
 - Volledige Next.js API route implementatie
 - Database schema voor OAuth token storage
 - Robuuste error handling en logging
@@ -39,6 +42,7 @@ Een modern ticketsysteem geïnspireerd door Trengo, gebouwd met cutting-edge tec
 ## 🚀 Tech Stack
 
 ### Frontend
+
 - **Next.js 14** - React framework met App Router
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first CSS framework
@@ -46,16 +50,19 @@ Een modern ticketsysteem geïnspireerd door Trengo, gebouwd met cutting-edge tec
 - **React Query** - Data synchronisatie
 
 ### Backend
+
 - **Supabase** - PostgreSQL database & Auth
 - **Gmail API** - Email synchronisatie en OAuth2
 - **Edge Functions** - Serverless functies
 
 ### Integraties
+
 - **Google OAuth2** - Gmail account authenticatie
 - **Gmail API v1** - Email fetching en real-time sync
 - **Automated Token Management** - Refresh token handling
 
 ### Development
+
 - **Turborepo** - Monorepo management
 - **pnpm** - Snelle package manager
 - **ESLint & Prettier** - Code quality
@@ -80,6 +87,7 @@ zynlo-helpdesk/
 ## 🛠️ Installatie
 
 ### Vereisten
+
 - Node.js 18+
 - pnpm 8+
 - Supabase account
@@ -88,23 +96,27 @@ zynlo-helpdesk/
 ### Setup
 
 1. **Clone de repository**
+
    ```bash
    git clone https://github.com/Garage-loyalty/zynlo.git
    cd zynlo
    ```
 
 2. **Installeer dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Configureer environment variables**
+
    ```bash
    cp apps/dashboard/.env.example apps/dashboard/.env.local
    cp apps/api-server/.env.example apps/api-server/.env.local
    ```
 
 4. **Setup Supabase**
+
    ```bash
    # Start lokale Supabase (optioneel)
    npx supabase start
@@ -123,6 +135,7 @@ zynlo-helpdesk/
 ### Environment Variables
 
 #### Dashboard (`apps/dashboard/.env.local`)
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
@@ -135,7 +148,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 ```
 
 #### Vercel Environment Variables
+
 Voor productie deployment in Vercel:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
@@ -147,23 +162,27 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 ## 📧 Gmail Integration Setup
 
 ### 1. Google Cloud Console Setup
+
 1. Ga naar [Google Cloud Console](https://console.cloud.google.com)
 2. Maak een nieuw project of selecteer een bestaand project
 3. Ga naar "APIs & Services" → "Credentials"
 4. Maak een OAuth 2.0 Client ID:
    - Application type: Web application
-   - Authorized redirect URIs: 
+   - Authorized redirect URIs:
      - `http://localhost:3000/api/auth/gmail/callback` (development)
      - `https://your-domain.vercel.app/api/auth/gmail/callback` (production)
 
 ### 2. Database Setup
+
 De oauth_tokens tabel wordt automatisch aangemaakt via migrations:
+
 ```sql
 -- Zie: supabase/migrations/20241221000000_create_oauth_tokens.sql
 -- Zie: supabase/migrations/20241221000001_update_channels_add_created_by.sql
 ```
 
 ### 3. Gmail Account Koppelen
+
 1. Ga naar "Kanalen" in je helpdesk
 2. Klik op "Email Kanaal Toevoegen"
 3. Kies "Gmail" als provider
@@ -172,6 +191,7 @@ De oauth_tokens tabel wordt automatisch aangemaakt via migrations:
 6. Test de sync met "Sync Nu"
 
 ### 4. Email-naar-Ticket Proces
+
 ```mermaid
 flowchart TD
     A[Gmail Sync Trigger] --> B[Fetch Recent Emails]
@@ -190,6 +210,7 @@ flowchart TD
 ## 🔌 Integraties
 
 ### Email Setup ✅ Compleet
+
 - **Gmail API Integration**: Volledig geïmplementeerd
 - **OAuth2 Flow**: Veilige account koppeling
 - **Real-time Sync**: Automatische email-naar-ticket conversie
@@ -199,6 +220,7 @@ flowchart TD
 Zie [EMAIL_INTEGRATION.md](docs/EMAIL_INTEGRATION.md) voor gedetailleerde technische documentatie.
 
 ### WhatsApp Setup (Geplanned)
+
 1. Configureer Twilio account
 2. Set webhook URL naar `https://your-domain.com/api/webhooks/whatsapp`
 3. Voeg credentials toe aan environment variables
@@ -206,6 +228,7 @@ Zie [EMAIL_INTEGRATION.md](docs/EMAIL_INTEGRATION.md) voor gedetailleerde techni
 ## 🚀 Deployment
 
 ### Vercel (Aanbevolen)
+
 1. Connect GitHub repository (`zynlo-helpdesk-fixed`)
 2. Configure environment variables (zie bovenstaande lijst)
 3. Deploy met één klik
@@ -214,21 +237,25 @@ Zie [EMAIL_INTEGRATION.md](docs/EMAIL_INTEGRATION.md) voor gedetailleerde techni
 ### Troubleshooting Gmail Integration
 
 **"Gmail tokens niet gevonden":**
+
 - Check of OAuth flow is voltooid
 - Verifieer GOOGLE_CLIENT_ID en GOOGLE_CLIENT_SECRET
 - Controleer redirect URIs in Google Cloud Console
 
 **"Token refresh failed":**
+
 - Check of refresh token bestaat in database
 - Verifieer SUPABASE_SERVICE_ROLE_KEY is ingesteld
 - Re-koppel Gmail account indien nodig
 
 **Emails worden niet gesynchroniseerd:**
+
 - Check Supabase logs in dashboard
 - Verifieer dat channel status "Verbonden" toont
 - Test sync handmatig via "Sync Nu" knop
 
 ### Docker
+
 ```bash
 docker-compose up -d
 ```
@@ -260,6 +287,7 @@ Dit project is gelicentieerd onder de MIT License - zie het [LICENSE](LICENSE) b
 ## 🚀 Deployment naar Vercel
 
 ### Prerequisites
+
 - Vercel account
 - GitHub repository
 - Supabase project
@@ -267,6 +295,7 @@ Dit project is gelicentieerd onder de MIT License - zie het [LICENSE](LICENSE) b
 ### Stap 1: Voorbereiding
 
 1. Zorg dat alle code gecommit is:
+
 ```bash
 git add .
 git commit -m "Prepare for Vercel deployment"
@@ -274,6 +303,7 @@ git push
 ```
 
 2. Controleer dat de build lokaal werkt:
+
 ```bash
 pnpm build
 ```
@@ -294,11 +324,13 @@ pnpm build
 Voeg de volgende environment variables toe in Vercel:
 
 **Required:**
+
 - `NEXT_PUBLIC_SUPABASE_URL` - Je Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Je Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` - Je Supabase service role key
 
 **Optional (voor extra features):**
+
 - `GOOGLE_CLIENT_ID` - Voor Gmail integratie
 - `GOOGLE_CLIENT_SECRET` - Voor Gmail integratie
 - `EMAIL_WEBHOOK_SECRET` - Voor email webhook beveiliging
@@ -312,16 +344,19 @@ Voeg de volgende environment variables toe in Vercel:
 ### Troubleshooting
 
 **Build faalt met "exit code 2":**
+
 - Check of alle environment variables zijn ingesteld
 - Controleer de build logs voor specifieke errors
 - Zorg dat `typescript.ignoreBuildErrors: true` in `next.config.js` staat (tijdelijke fix)
 
 **"Module not found" errors:**
+
 - Run `pnpm clean && pnpm install` lokaal
 - Commit de `pnpm-lock.yaml` file
 - Push naar GitHub en trigger een nieuwe deploy
 
 **Database connection errors:**
+
 - Controleer of de Supabase URL en keys correct zijn
 - Check of je Supabase project actief is
 - Verifieer dat de database migrations zijn uitgevoerd
@@ -413,6 +448,7 @@ pnpm format          # Format code
 ## 🚀 Deployment naar Vercel
 
 ### Prerequisites
+
 - Vercel account gekoppeld aan GitHub
 - Supabase project met migraties uitgevoerd
 - Google Cloud Console OAuth2 credentials
@@ -420,6 +456,7 @@ pnpm format          # Format code
 ### Stap 1: Repository Setup
 
 1. Zorg dat alle code gecommit is:
+
 ```bash
 git add .
 git commit -m "Prepare for Vercel deployment"
@@ -427,6 +464,7 @@ git push origin main
 ```
 
 2. Controleer dat de build lokaal werkt:
+
 ```bash
 pnpm build
 ```
@@ -455,6 +493,7 @@ Voeg alle environment variables toe uit de configuratie sectie hierboven.
 ## 🧪 Testing Gmail Integration
 
 ### Manual Test Procedure
+
 1. Ga naar `https://your-domain.vercel.app/`
 2. Navigeer naar "Kanalen" → je Gmail kanaal
 3. Klik "Sync Nu" en wacht op groene success melding
@@ -462,6 +501,7 @@ Voeg alle environment variables toe uit de configuratie sectie hierboven.
 5. Verifieer customer data en email content
 
 ### Expected Results
+
 - ✅ Elke email wordt een uniek ticket
 - ✅ Customer info wordt automatisch geëxtraheerd
 - ✅ Email content wordt bewaard als message
@@ -492,4 +532,4 @@ Dit project is gelicentieerd onder de MIT License - zie het [LICENSE](LICENSE) b
 
 **Need help?** Open een [issue](https://github.com/wasgeurtjeNL/zynlo-helpdesk-fixed/issues) of contacteer het development team.
 
-**🚀 Ready to test?** De Gmail integratie is volledig functioneel en klaar voor productie gebruik! 
+**🚀 Ready to test?** De Gmail integratie is volledig functioneel en klaar voor productie gebruik!
