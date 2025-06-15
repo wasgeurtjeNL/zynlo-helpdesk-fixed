@@ -82,15 +82,27 @@ app.post('/sync/gmail/:channelId', async (req, res) => {
   }
 });
 
-// Start cron job for Gmail sync (every 5 minutes)
-cron.schedule('*/5 * * * *', async () => {
-  console.log('Running Gmail sync cron job...');
-  try {
-    await gmailSync.syncAllChannels();
-  } catch (error) {
-    console.error('Cron job error:', error);
-  }
-});
+// Start Gmail sync every 20 seconds (faster sync)
+let gmailSyncInterval: NodeJS.Timeout;
+
+function startGmailSync() {
+  console.log('🚀 Starting Gmail sync every 20 seconds...');
+
+  // Run immediately on start
+  gmailSync.syncAllChannels().catch((error) => {
+    console.error('Initial Gmail sync error:', error);
+  });
+
+  // Then run every 20 seconds
+  gmailSyncInterval = setInterval(async () => {
+    console.log('Running Gmail sync (20 second interval)...');
+    try {
+      await gmailSync.syncAllChannels();
+    } catch (error) {
+      console.error('Gmail sync error:', error);
+    }
+  }, 20000); // 20 seconds = 20,000 milliseconds
+}
 
 // Start cron job to renew expiring Gmail Push Notifications (daily at 2 AM)
 cron.schedule('0 2 * * *', async () => {
@@ -105,7 +117,7 @@ cron.schedule('0 2 * * *', async () => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`API server running on port ${PORT}`);
-  console.log('Gmail sync cron job scheduled to run every 5 minutes');
+  console.log('Gmail sync scheduled to run every 20 seconds');
   console.log('Gmail Push Notifications renewal scheduled daily at 2 AM');
   console.log('Email webhook available at /webhooks/email');
   console.log('WhatsApp webhook available at /webhooks/whatsapp/:project_id');
@@ -119,6 +131,9 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('Failed to start email poller:', error);
   }
+
+  // Start Gmail sync every 20 seconds
+  startGmailSync();
 
   // Setup Gmail Push Notifications for all channels
   try {
@@ -164,12 +179,20 @@ app.listen(PORT, async () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
+  if (gmailSyncInterval) {
+    clearInterval(gmailSyncInterval);
+    console.log('Gmail sync interval stopped');
+  }
   await emailPoller.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
+  if (gmailSyncInterval) {
+    clearInterval(gmailSyncInterval);
+    console.log('Gmail sync interval stopped');
+  }
   await emailPoller.stop();
   process.exit(0);
 });
