@@ -7,15 +7,18 @@ export function useEmailChannels() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('channels')
-        .select('id, name, email_address, type, is_active')
+        .select('id, name, type, is_active, settings')
         .eq('type', 'email')
         .eq('is_active', true)
         .order('name')
 
       if (error) throw error
 
-      // Filter out channels without email addresses
-      return data?.filter(channel => channel.email_address) || []
+      // Transform data to include email_address from settings and filter out channels without email addresses
+      return data?.map(channel => ({
+        ...channel,
+        email_address: (channel.settings as any)?.email_address
+      })).filter(channel => channel.email_address) || []
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   })

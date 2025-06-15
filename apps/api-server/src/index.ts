@@ -6,8 +6,12 @@ import * as cron from 'node-cron'
 import { supabase } from './lib/supabase'
 
 // Load environment variables FIRST, before any other imports
+// Try to load from api-server directory first
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
+// Also try to load from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') })
+dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') })
 
 // Import routes
 import gmailAuthRoutes from '../routes/auth/gmail'

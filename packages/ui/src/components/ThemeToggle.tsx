@@ -1,6 +1,5 @@
 'use client';
 
-import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeProvider';
 import { cn } from '../utils/cn';
 
@@ -14,12 +13,6 @@ const sizeClasses = {
   sm: 'w-8 h-8',
   md: 'w-10 h-10',
   lg: 'w-12 h-12',
-};
-
-const iconSizes = {
-  sm: 16,
-  md: 20,
-  lg: 24,
 };
 
 export function ThemeToggle({ 
@@ -48,24 +41,11 @@ export function ThemeToggle({
       type="button"
     >
       <div className="relative w-full h-full flex items-center justify-center">
-        <Sun
-          className={cn(
-            'absolute transition-all duration-300',
-            theme === 'light'
-              ? 'opacity-100 rotate-0 scale-100'
-              : 'opacity-0 -rotate-90 scale-0'
-          )}
-          size={iconSizes[size]}
-        />
-        <Moon
-          className={cn(
-            'absolute transition-all duration-300',
-            theme === 'dark'
-              ? 'opacity-100 rotate-0 scale-100'
-              : 'opacity-0 rotate-90 scale-0'
-          )}
-          size={iconSizes[size]}
-        />
+        {theme === 'light' ? (
+          <span className="text-lg">☀️</span>
+        ) : (
+          <span className="text-lg">🌙</span>
+        )}
       </div>
       {showLabel && (
         <span className="sr-only">
@@ -87,9 +67,7 @@ export function ThemeSwitch({ className, showLabels = false }: ThemeSwitchProps)
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      {showLabels && (
-        <Sun className="w-4 h-4 text-muted-foreground" />
-      )}
+      {showLabels && <span className="text-sm">☀️</span>}
       <button
         role="switch"
         aria-checked={theme === 'dark'}
@@ -108,18 +86,12 @@ export function ThemeSwitch({ className, showLabels = false }: ThemeSwitchProps)
             theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
           )}
         >
-          <span className="flex h-full w-full items-center justify-center">
-            {theme === 'light' ? (
-              <Sun className="h-3 w-3" />
-            ) : (
-              <Moon className="h-3 w-3" />
-            )}
+          <span className="flex h-full w-full items-center justify-center text-xs">
+            {theme === 'light' ? '☀️' : '🌙'}
           </span>
         </span>
       </button>
-      {showLabels && (
-        <Moon className="w-4 h-4 text-muted-foreground" />
-      )}
+      {showLabels && <span className="text-sm">🌙</span>}
     </div>
   );
 } 

@@ -10,14 +10,20 @@ import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const clientId = process.env.GMAIL_CLIENT_ID
   const clientSecret = process.env.GMAIL_CLIENT_SECRET
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL // e.g. https://dash.zynlo.io
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${req.nextUrl.port || '3000'}`
 
-  if (!clientId || !clientSecret || !appUrl) {
+  console.log('Gmail OAuth config check:', {
+    hasClientId: !!clientId,
+    hasClientSecret: !!clientSecret,
+    appUrl: appUrl
+  })
+
+  if (!clientId || !clientSecret) {
     return NextResponse.json(
-      { error: 'Gmail OAuth is not configured on the server' },
+      { error: 'Gmail OAuth is not configured on the server. Missing GMAIL_CLIENT_ID or GMAIL_CLIENT_SECRET in environment variables.' },
       { status: 500 }
     )
   }

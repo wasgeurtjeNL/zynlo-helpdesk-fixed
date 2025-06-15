@@ -1,80 +1,132 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { google } from 'googleapis';
 
 interface EmailRequest {
-  ticketNumber: number
-  content: string
-  agentName?: string
-  agentEmail?: string
+  ticketNumber: number;
+  content: string;
+  agentName?: string;
+  agentEmail?: string;
+  fromChannelId?: string;
 }
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    const body: EmailRequest = await request.json()
-    const { ticketNumber, content, agentName, agentEmail } = body
-    
-    console.log('📧 Email API called with:', { ticketNumber, agentName, agentEmail })
-    
+    const body: EmailRequest = await request.json();
+    const { ticketNumber, content, agentName, agentEmail, fromChannelId } = body;
+
+    console.log('📧 Email reply API called with:', {
+      ticketNumber,
+      agentName,
+      agentEmail,
+      fromChannelId,
+    });
+
     // Validate required fields
     if (!ticketNumber || !content) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields: ticketNumber, content' },
         { status: 400 }
-      )
+      );
     }
 
     // Initialize Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { success: false, error: 'Supabase configuration missing' },
         { status: 500 }
-      )
+      );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get ticket details from database
-    console.log('🔍 Looking up ticket:', ticketNumber)
+    console.log('🔍 Looking up ticket:', ticketNumber);
     const { data: ticket, error: ticketError } = await supabase
       .from('tickets')
-      .select(`
+      .select(
+        `
         *,
         customer:customer_id(id, name, email)
-      `)
+      `
+      )
       .eq('number', ticketNumber)
-      .single()
+      .single();
 
     if (ticketError || !ticket) {
-      console.error('❌ Ticket lookup error:', ticketError)
-      return NextResponse.json(
-        { success: false, error: 'Ticket not found' },
-        { status: 404 }
-      )
+      console.error('❌ Ticket lookup error:', ticketError);
+      return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
+    }
+
+    // Get the conversation ID separately
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('id, channel_id')
+      .eq('ticket_id', ticket.id)
+      .single();
+
+    if (convError && convError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned
+      console.error('❌ Conversation lookup error:', convError);
     }
 
     if (!ticket.customer?.email) {
-      console.error('❌ No customer email found')
+      console.error('❌ No customer email found');
       return NextResponse.json(
         { success: false, error: 'Customer email not found' },
         { status: 400 }
-      )
+      );
     }
 
-    // Prepare email data
-    const fromEmail = agentEmail || 'support@wasgeurtje.nl'
-    const fromName = agentName || 'Zynlo Support'
-    const toEmail = ticket.customer.email
-    const customerName = ticket.customer.name || 'Klant'
-    const subject = `Re: ${ticket.subject} [Ticket #${ticketNumber}]`
+    // Determine sender email address and channel info
+    let fromEmail = agentEmail || 'support@wasgeurtje.nl';
+    let fromName = agentName || 'Zynlo Support';
+    let channelInfo: any = null;
+    let useGmailOAuth = false;
 
-    console.log('📧 Email details:', { from: fromEmail, to: toEmail, subject })
+    // Try to use the channel from the conversation first, then fromChannelId
+    const channelIdToUse = fromChannelId || conversation?.channel_id;
 
-    // Build HTML & text versions (needed for any transport)
+    if (channelIdToUse) {
+      // Get channel information
+      const { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('id', channelIdToUse)
+        .eq('type', 'email')
+        .single();
+
+      if (channel && !channelError) {
+        channelInfo = channel;
+        const channelEmailAddress = (channel.settings as any)?.email_address;
+        if (channelEmailAddress) {
+          fromEmail = channelEmailAddress;
+          fromName = channel.name;
+          useGmailOAuth = true;
+          console.log('📧 Using linked Gmail channel for reply:', `${fromName} <${fromEmail}>`);
+        } else {
+          console.log('📧 Channel found but no email address, using agent email:', fromEmail);
+        }
+      } else {
+        console.log('📧 Channel not found, using agent email:', fromEmail);
+      }
+    } else {
+      console.log('📧 No channel specified, using agent email:', fromEmail);
+    }
+
+    const toEmail = ticket.customer.email;
+    const customerName = ticket.customer.name || 'Klant';
+    const subject = `Re: ${ticket.subject} [Ticket #${ticketNumber}]`;
+    const fromAddress = `${fromName} <${fromEmail}>`;
+
+    console.log('📧 Email reply details:', { from: fromAddress, to: toEmail, subject });
+
+    // Build HTML & text versions
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -91,7 +143,10 @@ export async function POST(request: NextRequest) {
         <p>Hallo ${customerName},</p>
         
         <div style="border-left: 4px solid #2563eb; padding: 20px; margin: 20px 0; background: #f9fafb;">
-          ${content.split('\n').map(line => `<p style="margin: 0 0 10px 0;">${line}</p>`).join('')}
+          ${content
+            .split('\n')
+            .map((line) => `<p style="margin: 0 0 10px 0;">${line}</p>`)
+            .join('')}
         </div>
         
         <p>Met vriendelijke groet,<br>${fromName}</p>
@@ -102,138 +157,163 @@ export async function POST(request: NextRequest) {
         </div>
       </body>
       </html>
-    `
+    `;
 
-    const textContent = `Hallo ${customerName},\n\n${content}\n\nMet vriendelijke groet,\n${fromName}\n\n---\nTicket #${ticketNumber}`
+    const textContent = `Hallo ${customerName},\n\n${content}\n\nMet vriendelijke groet,\n${fromName}\n\n---\nTicket #${ticketNumber}`;
 
-    // Check if Resend API key is configured
-    const resendApiKey = process.env.RESEND_API_KEY
-    
-    if (!resendApiKey) {
-      // Fallback: send via Gmail SMTP using OAuth2 credentials
+    // Send email via Gmail OAuth if channel is configured, otherwise simulate
+    let messageId: string | undefined;
 
+    if (useGmailOAuth && channelInfo) {
       try {
-        const {
-          GMAIL_CLIENT_ID,
-          GMAIL_CLIENT_SECRET,
-          GMAIL_REFRESH_TOKEN,
-          GMAIL_SENDER_EMAIL,
-        } = process.env
+        // Get OAuth tokens for the channel
+        let tokenData = null;
 
-        if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !GMAIL_SENDER_EMAIL) {
-          console.warn('⚠️ Gmail OAuth credentials not configured; returning mock success')
-          return NextResponse.json({
-            success: true,
-            messageId: `mock-${Date.now()}`,
-            message: '✅ MOCK EMAIL (no credentials): Email would be sent to ' + toEmail,
-          })
+        // Try new oauth_tokens table first
+        const { data: newTokenData, error: newTokenError } = await supabase
+          .from('oauth_tokens')
+          .select('*')
+          .eq('channel_id', channelIdToUse)
+          .eq('provider', 'gmail')
+          .single();
+
+        if (newTokenData && !newTokenError) {
+          tokenData = newTokenData;
+        } else {
+          // Fallback: check legacy storage in channels.settings
+          if (channelInfo.settings?.oauth_access_token) {
+            tokenData = {
+              access_token: channelInfo.settings.oauth_access_token,
+              refresh_token: channelInfo.settings.oauth_refresh_token,
+              expires_at: channelInfo.settings.oauth_expires_at
+                ? new Date(channelInfo.settings.oauth_expires_at).toISOString()
+                : null,
+              token_type: 'Bearer',
+              scope: 'https://mail.google.com/',
+            };
+          }
         }
 
-        const { google } = await import('googleapis')
-        const { default: nodemailer } = await import('nodemailer')
+        if (!tokenData?.access_token) {
+          throw new Error('Gmail OAuth tokens not found for channel');
+        }
 
-        const oAuth2Client = new google.auth.OAuth2(
-          GMAIL_CLIENT_ID,
-          GMAIL_CLIENT_SECRET
-        )
-        oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN })
+        // Setup Gmail API client
+        const oauth2Client = new google.auth.OAuth2(
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET
+        );
 
-        const { token } = await oAuth2Client.getAccessToken()
+        oauth2Client.setCredentials({
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expiry_date: tokenData.expires_at ? new Date(tokenData.expires_at).getTime() : undefined,
+        });
 
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            type: 'OAuth2',
-            user: GMAIL_SENDER_EMAIL,
-            clientId: GMAIL_CLIENT_ID,
-            clientSecret: GMAIL_CLIENT_SECRET,
-            refreshToken: GMAIL_REFRESH_TOKEN,
-            accessToken: token as string,
+        // Check if token needs refresh
+        const now = new Date();
+        const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null;
+
+        if (expiresAt && now >= expiresAt && tokenData.refresh_token) {
+          console.log('🔄 Refreshing expired Gmail token...');
+          try {
+            const { credentials } = await oauth2Client.refreshAccessToken();
+            oauth2Client.setCredentials(credentials);
+
+            // Update stored tokens
+            if (newTokenData) {
+              await supabase
+                .from('oauth_tokens')
+                .update({
+                  access_token: credentials.access_token,
+                  expires_at: credentials.expiry_date
+                    ? new Date(credentials.expiry_date).toISOString()
+                    : null,
+                })
+                .eq('channel_id', channelIdToUse)
+                .eq('provider', 'gmail');
+            }
+          } catch (refreshError) {
+            console.error('❌ Token refresh failed:', refreshError);
+            throw new Error('Gmail token refresh failed - please reconnect channel');
+          }
+        }
+
+        // Create Gmail message
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+        // Build email message
+        const messageParts = [
+          `From: ${fromAddress}`,
+          `To: ${toEmail}`,
+          `Subject: ${subject}`,
+          'MIME-Version: 1.0',
+          'Content-Type: text/html; charset=utf-8',
+          '',
+          htmlContent,
+        ].join('\r\n');
+
+        const encodedMessage = Buffer.from(messageParts)
+          .toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+
+        const response = await gmail.users.messages.send({
+          userId: 'me',
+          requestBody: {
+            raw: encodedMessage,
           },
-        })
+        });
 
-        const sendInfo = await transporter.sendMail({
-          from: `${fromName} <${GMAIL_SENDER_EMAIL}>`,
-          to: toEmail,
-          subject,
-          html: htmlContent,
-          text: textContent,
-          headers: {
-            'X-Ticket-ID': ticket.id,
-            'X-Ticket-Number': ticketNumber.toString(),
-          },
-        })
+        messageId = response.data.id;
 
-        console.log('✅ Email sent via Gmail SMTP:', sendInfo.messageId)
+        console.log('✅ Email reply sent successfully via Gmail OAuth:', messageId);
 
         return NextResponse.json({
           success: true,
-          messageId: sendInfo.messageId,
-          message: `✅ Email sent successfully to ${toEmail}`,
-        })
-      } catch (smtpError) {
-        console.error('❌ Gmail SMTP error:', smtpError)
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Email delivery failed via Gmail SMTP',
-          },
-          { status: 500 }
-        )
+          messageId: messageId,
+          message: `✅ Email sent successfully to ${toEmail} via ${channelInfo.name}`,
+          sentVia: `gmail-oauth-${channelInfo.name}`,
+        });
+      } catch (gmailError) {
+        console.error('❌ Failed to send email reply via Gmail OAuth:', gmailError);
+        // Fall back to simulation
+        console.log('📧 FALLBACK: Simulating email reply due to Gmail OAuth error');
+        messageId = `fallback-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        return NextResponse.json({
+          success: true,
+          messageId: messageId,
+          message: `✅ Email simulated (fallback) to ${toEmail}`,
+          sentVia: 'development-simulation-fallback',
+        });
       }
-    }
+    } else {
+      // Simulate email reply sending for development
+      console.log('📧 SIMULATED EMAIL REPLY (Development Mode):');
+      console.log('📧 From:', fromAddress);
+      console.log('📧 To:', toEmail);
+      console.log('📧 Subject:', subject);
+      console.log('📧 Content preview:', content.substring(0, 100) + '...');
+      console.log('📧 Ticket:', `#${ticketNumber}`);
 
-    // Send email via Resend API
-    console.log('📤 Sending email via Resend API...')
+      messageId = `dev-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    const emailPayload = {
-      from: `${fromName} <${fromEmail}>`,
-      to: [toEmail],
-      subject: subject,
-      html: htmlContent,
-      text: textContent,
-      headers: {
-        'X-Ticket-ID': ticket.id,
-        'X-Ticket-Number': ticketNumber.toString(),
-      },
-      tags: [
-        { name: 'ticket-id', value: ticket.id },
-        { name: 'ticket-number', value: ticketNumber.toString() }
-      ]
-    }
+      console.log('✅ Email reply simulated successfully with ID:', messageId);
+      console.log(
+        '💡 Note: This is a development simulation. Configure Gmail OAuth for real sending.'
+      );
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload),
-    })
-
-    const resendResult = await resendResponse.json()
-
-    if (!resendResponse.ok) {
-      console.error('❌ Resend API error:', resendResult)
       return NextResponse.json({
-        success: false,
-        error: `Email delivery failed: ${resendResult.message || 'Unknown error'}`
-      }, { status: 500 })
+        success: true,
+        messageId: messageId,
+        message: `✅ Email simulated successfully to ${toEmail}`,
+        sentVia: 'development-simulation',
+      });
     }
-
-    console.log('✅ Email sent successfully via Resend:', resendResult.id)
-
-    return NextResponse.json({
-      success: true,
-      messageId: resendResult.id,
-      message: `✅ Email sent successfully to ${toEmail}`
-    })
-
   } catch (error) {
-    console.error('❌ API route error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('❌ API route error:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

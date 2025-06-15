@@ -134,7 +134,20 @@ export default function EmailChannelsPage() {
     // Start Gmail OAuth flow
     try {
       const res = await fetch('/api/auth/gmail/init')
-      if (!res.ok) throw new Error('Failed to start OAuth')
+      
+      // Check if response is JSON
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned non-JSON response. Check console for details.');
+      }
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to start OAuth')
+      }
+      
       const { url } = await res.json()
 
       const popup = window.open(url, 'gmail-oauth', 'width=500,height=620')

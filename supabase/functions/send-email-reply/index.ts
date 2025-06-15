@@ -73,6 +73,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Use the provided agentEmail (which is the authenticated user's email)
     const fromEmail = agentEmail || 'support@wasgeurtje.nl';
     const fromName = agentName || 'Zynlo Support';
     const toEmail = ticket.customer.email;

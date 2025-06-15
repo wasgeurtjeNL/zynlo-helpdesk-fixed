@@ -26,6 +26,7 @@ import { useAuthContext } from '@/components/auth-provider'
 import { useRouter } from 'next/navigation'
 import { ComposeModal } from './compose-modal'
 import { toast } from 'sonner'
+import { supabase } from '@zynlo/supabase'
 
 const navigation = [
   {
@@ -111,12 +112,18 @@ export function Sidebar() {
     try {
       toast.loading('Email wordt verzonden...', { id: 'send-email' })
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       const response = await fetch('/api/compose/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       })
 
       if (!response.ok) {

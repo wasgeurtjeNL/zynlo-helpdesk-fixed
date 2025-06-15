@@ -34,7 +34,12 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
   const { user } = useUser()
   const { data: emailChannels } = useEmailChannels()
 
-  // Set default channel when channels are loaded
+  // Determine currently selected channel; fall back to first channel
+  const selectedChannel =
+    emailChannels?.find((channel) => channel.id === selectedChannelId) ||
+    emailChannels?.[0]
+
+  // If no explicit selection yet but channels exist, set first channel as selected
   useEffect(() => {
     if (emailChannels && emailChannels.length > 0 && !selectedChannelId) {
       setSelectedChannelId(emailChannels[0].id)
@@ -53,8 +58,6 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showChannelDropdown])
-
-  const selectedChannel = emailChannels?.find(channel => channel.id === selectedChannelId)
 
   const handleSend = async () => {
     if (!to.trim() || !subject.trim() || !content.trim()) {
@@ -100,7 +103,7 @@ export function ComposeModal({ isOpen, onClose, onSend }: ComposeModalProps) {
     if (selectedChannel?.email_address) {
       return `${selectedChannel.name} <${selectedChannel.email_address}>`
     }
-    return `${user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Support'} <${user?.email || 'support@zynlo.com'}>`
+    return `${user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Support'} <${user?.email || 'support@wasgeurtje.nl'}>`
   }
 
   return (

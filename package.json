@@ -26,19 +26,21 @@
     "supabase:stop": "supabase stop",
     "supabase:types": "pnpm -F supabase generate-types",
     "prepare": "husky install",
-    "apply-indexes": "node scripts/apply-indexes.js"
+    "apply-indexes": "node scripts/apply-indexes.js",
+    "setup-gmail": "node scripts/setup-gmail-oauth-simple.js"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "eslint": "^8.54.0",
+    "googleapis": "^144.0.0",
+    "graphql": "16",
     "husky": "^8.0.3",
     "lint-staged": "^15.1.0",
+    "open": "^9.1.0",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
     "turbo": "^2.5.3",
-    "typescript": "^5.3.2",
-    "googleapis": "^144.0.0",
-    "open": "^9.1.0"
+    "typescript": "^5.3.2"
   },
   "engines": {
     "node": ">=18.0.0",
