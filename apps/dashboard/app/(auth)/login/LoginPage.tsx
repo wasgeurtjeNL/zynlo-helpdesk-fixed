@@ -90,10 +90,20 @@ export default function LoginPage() {
       setDebugInfo(`Starting ${provider} login...`);
       setLoading(true);
 
+      // Determine the correct redirect URL based on environment
+      const isProduction =
+        window.location.hostname === 'zynlo.io' || window.location.hostname.includes('vercel.app');
+
+      const redirectTo = isProduction
+        ? 'https://zynlo.io/inbox/nieuw'
+        : `${window.location.origin}/inbox/nieuw`;
+
+      console.log('OAuth redirect URL:', redirectTo);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider === 'microsoft' ? 'azure' : provider,
         options: {
-          redirectTo: `${window.location.origin}/inbox/nieuw`,
+          redirectTo,
         },
       });
 
