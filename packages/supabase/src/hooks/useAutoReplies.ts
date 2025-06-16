@@ -260,24 +260,47 @@ export function useUpdateAutoReplyRule() {
 
       if (ruleError) throw ruleError;
 
-      // If templates are provided, replace them completely
+      // If templates are provided, update them using upsert strategy to avoid foreign key conflicts
       if (templates) {
         try {
-          // First, delete all existing templates for this rule
-          const { error: deleteError } = await supabase
+          // Get existing templates first
+          const { data: existingTemplates, error: fetchError } = await supabase
             .from('auto_reply_templates')
-            .delete()
+            .select('*')
             .eq('rule_id', ruleId);
 
-          if (deleteError) {
-            console.error('Failed to delete existing templates:', deleteError);
-            throw new Error(`Failed to delete existing templates: ${deleteError.message}`);
+          if (fetchError) {
+            console.error('Failed to fetch existing templates:', fetchError);
+            throw new Error(`Failed to fetch existing templates: ${fetchError.message}`);
           }
 
-          // Then insert all new templates
-          if (templates.length > 0) {
-            const { error: insertError } = await supabase.from('auto_reply_templates').insert(
-              templates.map((template, index) => ({
+          // Process each template - update existing or insert new
+          for (let index = 0; index < templates.length; index++) {
+            const template = templates[index];
+            const existingTemplate = existingTemplates?.find(
+              (t) => t.language === template.language
+            );
+
+            if (existingTemplate) {
+              // Update existing template in place
+              const { error: updateError } = await supabase
+                .from('auto_reply_templates')
+                .update({
+                  subject_template: template.subject_template,
+                  content_template: template.content_template,
+                  content_type: template.content_type || 'text/html',
+                  variables: template.variables || {},
+                  execution_order: template.execution_order ?? index,
+                })
+                .eq('id', existingTemplate.id);
+
+              if (updateError) {
+                console.error('Failed to update template:', updateError);
+                throw new Error(`Failed to update template: ${updateError.message}`);
+              }
+            } else {
+              // Insert new template
+              const { error: insertError } = await supabase.from('auto_reply_templates').insert({
                 rule_id: ruleId,
                 language: template.language,
                 subject_template: template.subject_template,
@@ -285,12 +308,52 @@ export function useUpdateAutoReplyRule() {
                 content_type: template.content_type || 'text/html',
                 variables: template.variables || {},
                 execution_order: template.execution_order ?? index,
-              }))
-            );
+              });
 
-            if (insertError) {
-              console.error('Failed to insert new templates:', insertError);
-              throw new Error(`Failed to insert new templates: ${insertError.message}`);
+              if (insertError) {
+                console.error('Failed to insert template:', insertError);
+                throw new Error(`Failed to insert template: ${insertError.message}`);
+              }
+            }
+          }
+
+          // For templates that are no longer needed, only delete if they're not referenced
+          const templateLanguages = templates.map((t) => t.language);
+          const templatesToCheck = existingTemplates?.filter(
+            (existing) => !templateLanguages.includes(existing.language)
+          );
+
+          if (templatesToCheck && templatesToCheck.length > 0) {
+            // Check if any of these templates are referenced in execution logs
+            const { data: referencedTemplates, error: refError } = await supabase
+              .from('auto_reply_execution_logs')
+              .select('template_used')
+              .in(
+                'template_used',
+                templatesToCheck.map((t) => t.id)
+              )
+              .limit(1);
+
+            if (refError) {
+              console.warn('Failed to check template references, skipping deletion:', refError);
+            } else if (!referencedTemplates || referencedTemplates.length === 0) {
+              // Safe to delete unreferenced templates
+              const { error: deleteError } = await supabase
+                .from('auto_reply_templates')
+                .delete()
+                .in(
+                  'id',
+                  templatesToCheck.map((t) => t.id)
+                );
+
+              if (deleteError) {
+                console.warn('Failed to delete unused templates:', deleteError);
+                // Don't throw error here, as the main update was successful
+              }
+            } else {
+              console.log(
+                'Skipping deletion of templates that are still referenced in execution logs'
+              );
             }
           }
         } catch (error) {
