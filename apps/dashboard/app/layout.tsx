@@ -14,6 +14,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl" suppressHydrationWarning>
+      <head>
+        <script src="/oauth-redirect.js" />
+      </head>
       <body className={inter.className}>
         <OAuthRedirectHandler />
         <Providers>{children}</Providers>
