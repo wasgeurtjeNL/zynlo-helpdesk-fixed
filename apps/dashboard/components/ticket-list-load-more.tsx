@@ -167,6 +167,7 @@ export function TicketListLoadMore({ status, isSpam, className }: TicketListLoad
   const queryClient = useQueryClient();
   const { selectedTicketNumber, setSelectedTicketNumber } = useSelectedTicketSafe();
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const deleteTicket = useDeleteTicket();
@@ -258,19 +259,39 @@ export function TicketListLoadMore({ status, isSpam, className }: TicketListLoad
   const handleSelectAll = () => {
     if (selectedTickets.size === filteredTickets?.length) {
       setSelectedTickets(new Set());
+      setLastSelectedIndex(null);
     } else {
       setSelectedTickets(new Set(filteredTickets?.map((t: any) => t.id) || []));
+      setLastSelectedIndex(null);
     }
   };
 
-  const handleSelectTicket = (ticketId: string) => {
+  const handleSelectTicket = (ticketId: string, index: number, event?: React.MouseEvent) => {
     const newSelected = new Set(selectedTickets);
-    if (newSelected.has(ticketId)) {
-      newSelected.delete(ticketId);
+
+    // Check if shift key is pressed and we have a previous selection
+    if (event?.shiftKey && lastSelectedIndex !== null && lastSelectedIndex !== index) {
+      // Determine the range to select
+      const startIndex = Math.min(lastSelectedIndex, index);
+      const endIndex = Math.max(lastSelectedIndex, index);
+
+      // Select all tickets in the range
+      for (let i = startIndex; i <= endIndex; i++) {
+        if (filteredTickets[i]) {
+          newSelected.add(filteredTickets[i].id);
+        }
+      }
     } else {
-      newSelected.add(ticketId);
+      // Regular click behavior - toggle selection
+      if (newSelected.has(ticketId)) {
+        newSelected.delete(ticketId);
+      } else {
+        newSelected.add(ticketId);
+      }
     }
+
     setSelectedTickets(newSelected);
+    setLastSelectedIndex(index);
   };
 
   const handleTicketClick = (ticketNumber: number) => {
@@ -586,7 +607,7 @@ export function TicketListLoadMore({ status, isSpam, className }: TicketListLoad
             </div>
           ) : (
             <>
-              {filteredTickets.map((ticket: any) => {
+              {filteredTickets.map((ticket: any, index: number) => {
                 const StatusIcon = statusIcons[ticket.status as TicketStatus];
                 const isSelected = selectedTicketNumber === ticket.number;
                 const customerName = getCustomerName(ticket.customer);
@@ -606,7 +627,7 @@ export function TicketListLoadMore({ status, isSpam, className }: TicketListLoad
                     {/* Checkbox */}
                     <div className="pt-1" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={() => handleSelectTicket(ticket.id)}
+                        onClick={(e) => handleSelectTicket(ticket.id, index, e)}
                         className={cn(
                           'flex items-center transition-opacity',
                           selectedTickets.has(ticket.id) || selectedTickets.size > 0
