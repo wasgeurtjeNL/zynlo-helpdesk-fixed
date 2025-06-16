@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Building2,
   Users,
@@ -25,12 +25,13 @@ import {
   Languages,
   Bot,
   BarChart3,
-  Sparkles
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuthContext } from '@/components/auth-provider'
-import { useEffect, useState } from 'react'
-import { supabase } from '@zynlo/supabase'
+  Sparkles,
+  MessageSquare,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuthContext } from '@/components/auth-provider';
+import { useEffect, useState } from 'react';
+import { supabase } from '@zynlo/supabase';
 
 const settingsNavigation = [
   {
@@ -44,7 +45,12 @@ const settingsNavigation = [
   {
     title: 'Kanalen',
     items: [
-      { id: 'whatsapp', label: 'WhatsApp Business', icon: Hash, href: '/settings/channels/whatsapp' },
+      {
+        id: 'whatsapp',
+        label: 'WhatsApp Business',
+        icon: Hash,
+        href: '/settings/channels/whatsapp',
+      },
       { id: 'facebook', label: 'Facebook', icon: Hash, href: '/settings/channels/facebook' },
       { id: 'instagram', label: 'Instagram', icon: Hash, href: '/settings/channels/instagram' },
       { id: 'email', label: 'E-mail', icon: Hash, href: '/settings/channels/email' },
@@ -58,9 +64,24 @@ const settingsNavigation = [
     items: [
       { id: 'rules', label: 'Regels', icon: Zap, href: '/settings/automation/rules' },
       { id: 'flowbots', label: 'Flowbots', icon: Zap, href: '/settings/automation/flowbots' },
-      { id: 'ai-journeys', label: 'AI Journeys', icon: Zap, href: '/settings/automation/ai-journeys' },
-      { id: 'auto-replies', label: 'Automatische antwoorden', icon: Zap, href: '/settings/automation/auto-replies' },
-      { id: 'widget-customization', label: 'Widget aanpassingen', icon: Palette, href: '/settings/widget' },
+      {
+        id: 'ai-journeys',
+        label: 'AI Journeys',
+        icon: Zap,
+        href: '/settings/automation/ai-journeys',
+      },
+      {
+        id: 'auto-replies',
+        label: 'Automatische antwoorden',
+        icon: Zap,
+        href: '/settings/automation/auto-replies',
+      },
+      {
+        id: 'widget-customization',
+        label: 'Widget aanpassingen',
+        icon: Palette,
+        href: '/settings/widget',
+      },
       { id: 'translations', label: 'Vertalingen', icon: Globe, href: '/settings/translations' },
     ],
   },
@@ -69,7 +90,13 @@ const settingsNavigation = [
     items: [
       { id: 'ai-config', label: 'AI Configuratie', icon: Brain, href: '/settings/ai-config' },
       { id: 'ai-usage', label: 'AI Gebruik & Kosten', icon: Activity, href: '/settings/ai-usage' },
-      { id: 'ai-learning', label: 'AI Learning Center', icon: Sparkles, href: '/settings/ai-learning', adminOnly: true },
+      {
+        id: 'ai-learning',
+        label: 'AI Learning Center',
+        icon: Sparkles,
+        href: '/settings/ai-learning',
+        adminOnly: true,
+      },
     ],
   },
   {
@@ -90,48 +117,45 @@ const settingsNavigation = [
       { id: 'notifications', label: 'Notificaties', icon: Bell, href: '/settings/notifications' },
     ],
   },
-]
+];
 
 export function SettingsSidebar() {
-  const pathname = usePathname()
-  const { user } = useAuthContext()
-  const [isAdmin, setIsAdmin] = useState(false)
+  const pathname = usePathname();
+  const { user } = useAuthContext();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function checkRole() {
       if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-        
-        setIsAdmin(data?.role === 'admin')
+        const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
+
+        setIsAdmin(data?.role === 'admin');
       }
     }
-    checkRole()
-  }, [user])
+    checkRole();
+  }, [user]);
 
   const navigation = [
     { name: 'Profiel', href: '/settings/profile', icon: User },
     { name: 'Notificaties', href: '/settings/notifications', icon: Bell },
     { name: 'Beveiliging', href: '/settings/security', icon: Shield },
     { name: 'Abonnement', href: '/settings/subscription', icon: CreditCard },
-  ]
+  ];
 
   const teamNavigation = [
     { name: 'Team Leden', href: '/settings/team', icon: Users },
     { name: 'Labels', href: '/settings/labels', icon: Tag },
     { name: 'Taken', href: '/settings/tasks', icon: CheckSquare },
+    { name: 'Snel Antwoorden', href: '/settings/saved-replies', icon: MessageSquare },
     { name: 'Kanalen', href: '/settings/channels', icon: HelpCircle },
     { name: 'Talen', href: '/settings/languages', icon: Languages },
-  ]
+  ];
 
   const adminNavigation = [
     { name: 'AI Configuratie', href: '/settings/ai-config', icon: Bot },
     { name: 'AI Gebruik', href: '/settings/ai-usage', icon: BarChart3 },
     { name: 'AI Learning', href: '/settings/ai-learning', icon: Sparkles },
-  ]
+  ];
 
   return (
     <aside className="w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto">
@@ -147,7 +171,7 @@ export function SettingsSidebar() {
 
       <nav className="p-4">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Instellingen</h2>
-        
+
         {settingsNavigation.map((section) => (
           <div key={section.title} className="mb-6">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -157,28 +181,24 @@ export function SettingsSidebar() {
               {section.items.map((item) => {
                 // Skip admin-only items for non-admin users
                 if (item.adminOnly && !isAdmin) {
-                  return null
+                  return null;
                 }
-                
-                const isActive = pathname === item.href
+
+                const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.id}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
-                      isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-100"
+                      'flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors',
+                      isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'
                     )}
                   >
                     <item.icon className="w-4 h-4" />
                     <span>{item.label}</span>
-                    {item.adminOnly && (
-                      <span className="ml-auto text-xs text-gray-500">Admin</span>
-                    )}
+                    {item.adminOnly && <span className="ml-auto text-xs text-gray-500">Admin</span>}
                   </Link>
-                )
+                );
               })}
             </div>
           </div>
@@ -192,16 +212,17 @@ export function SettingsSidebar() {
           </h3>
           <ul className="mt-3 space-y-1">
             {navigation.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href;
               return (
                 <li key={item.name}>
                   <Link
                     href={item.href}
                     className={`
                       group flex items-center px-3 py-2 text-sm font-medium rounded-md
-                      ${isActive 
-                        ? 'bg-gray-200 text-gray-900' 
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      ${
+                        isActive
+                          ? 'bg-gray-200 text-gray-900'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                       }
                     `}
                   >
@@ -214,27 +235,26 @@ export function SettingsSidebar() {
                     <span className="truncate">{item.name}</span>
                   </Link>
                 </li>
-              )
+              );
             })}
           </ul>
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Team
-          </h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Team</h3>
           <ul className="mt-3 space-y-1">
             {teamNavigation.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href;
               return (
                 <li key={item.name}>
                   <Link
                     href={item.href}
                     className={`
                       group flex items-center px-3 py-2 text-sm font-medium rounded-md
-                      ${isActive 
-                        ? 'bg-gray-200 text-gray-900' 
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      ${
+                        isActive
+                          ? 'bg-gray-200 text-gray-900'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                       }
                     `}
                   >
@@ -247,28 +267,27 @@ export function SettingsSidebar() {
                     <span className="truncate">{item.name}</span>
                   </Link>
                 </li>
-              )
+              );
             })}
           </ul>
         </div>
 
         {isAdmin && (
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Admin
-            </h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</h3>
             <ul className="mt-3 space-y-1">
               {adminNavigation.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href;
                 return (
                   <li key={item.name}>
                     <Link
                       href={item.href}
                       className={`
                         group flex items-center px-3 py-2 text-sm font-medium rounded-md
-                        ${isActive 
-                          ? 'bg-gray-200 text-gray-900' 
-                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                        ${
+                          isActive
+                            ? 'bg-gray-200 text-gray-900'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                         }
                       `}
                     >
@@ -281,12 +300,12 @@ export function SettingsSidebar() {
                       <span className="truncate">{item.name}</span>
                     </Link>
                   </li>
-                )
+                );
               })}
             </ul>
           </div>
         )}
       </nav>
     </aside>
-  )
-} 
+  );
+}
