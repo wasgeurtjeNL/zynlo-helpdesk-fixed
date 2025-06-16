@@ -124,11 +124,7 @@ serve(async (req: Request): Promise<Response> => {
             .split('\n')
             .map((line) => `<p style="margin: 0 0 10px 0;">${line}</p>`)
             .join('')}
-        </div>
-        
-        <p>Met vriendelijke groet,<br>
-        ${variables.agent.name}</p>
-        
+        </div>        
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
         
         <div style="font-size: 12px; color: #6b7280; text-align: center;">
