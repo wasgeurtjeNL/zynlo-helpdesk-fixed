@@ -73,7 +73,7 @@ serve(async (req) => {
     // Filter channels with valid OAuth tokens
     const validChannels = (channels || []).filter((channel) => {
       const settings = channel.settings || {};
-      return settings.oauth_token || settings.refresh_token;
+      return settings.oauth_access_token || settings.oauth_refresh_token;
     });
 
     console.log(`Found ${validChannels.length} valid Gmail channels to sync`);
@@ -147,17 +147,17 @@ async function syncChannel(channel: any, supabase: any, clientId: string, client
   const gmailApiUrl = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
   // Get access token (refresh if needed)
-  let accessToken = settings.oauth_token;
+  let accessToken = settings.oauth_access_token;
 
   // If no access token or it might be expired, try to refresh
-  if (!accessToken && settings.refresh_token) {
+  if (!accessToken && settings.oauth_refresh_token) {
     const refreshResponse = await fetch(oauthUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        refresh_token: settings.refresh_token,
+        refresh_token: settings.oauth_refresh_token,
         grant_type: 'refresh_token',
       }),
     });
@@ -172,7 +172,7 @@ async function syncChannel(channel: any, supabase: any, clientId: string, client
         .update({
           settings: {
             ...settings,
-            oauth_token: accessToken,
+            oauth_access_token: accessToken,
           },
         })
         .eq('id', channel.id);
@@ -185,50 +185,77 @@ async function syncChannel(channel: any, supabase: any, clientId: string, client
 
   // Calculate time range for sync
   const after = channel.last_sync
-    ? new Date(channel.last_sync).getTime() / 1000
-    : Date.now() / 1000 - 86400; // 24 hours ago
+    ? Math.floor(new Date(channel.last_sync).getTime() / 1000)
+    : Math.floor(Date.now() / 1000 - 86400); // 24 hours ago
 
-  // Search for new messages
-  const query = `after:${Math.floor(after)} -from:me`;
-  const messagesUrl = `${gmailApiUrl}/messages?q=${encodeURIComponent(query)}&maxResults=50`;
+  // Search for new messages – unix timestamp + INBOX label
+  const query = `in:inbox after:${after}`;
 
-  const messagesResponse = await fetch(messagesUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  let pageToken: string | undefined = undefined;
+  const messages: Array<{ id: string }> = [];
 
-  if (!messagesResponse.ok) {
-    throw new Error(`Failed to fetch messages: ${messagesResponse.statusText}`);
-  }
+  do {
+    const url = new URL(`${gmailApiUrl}/messages`);
+    url.searchParams.set('q', query);
+    url.searchParams.set('maxResults', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
 
-  const messagesData = await messagesResponse.json();
-  const messages = messagesData.messages || [];
+    const listResp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-  console.log(`Found ${messages.length} new messages for channel ${channel.id}`);
+    if (!listResp.ok) {
+      const errorText = await listResp.text();
+      throw new Error(`List messages failed ${listResp.status}: ${errorText}`);
+    }
+
+    const listData = await listResp.json();
+    if (listData.messages) messages.push(...listData.messages);
+    pageToken = listData.nextPageToken;
+  } while (pageToken);
+
+  console.log(`[Gmail Sync] Found ${messages.length} candidate messages for channel ${channel.id}`);
 
   let processed = 0;
   let errors = 0;
+  let actuallyProcessedNewEmails = false;
 
   // Process each message
   for (const message of messages) {
     try {
-      await processMessage(message.id, channel, supabase, accessToken);
-      processed++;
+      const wasProcessed = await processMessage(message.id, channel, supabase, accessToken);
+      if (wasProcessed) {
+        processed++;
+        actuallyProcessedNewEmails = true;
+      }
     } catch (error) {
       console.error(`Error processing message ${message.id}:`, error);
       errors++;
     }
   }
 
-  // Update last sync time
-  await supabase
-    .from('channels')
-    .update({ last_sync: new Date().toISOString() })
-    .eq('id', channel.id);
+  // Update last sync time ONLY if we actually processed NEW messages (not duplicates)
+  if (actuallyProcessedNewEmails) {
+    console.log(`Updating last_sync because we processed ${processed} new messages`);
+    await supabase
+      .from('channels')
+      .update({ last_sync: new Date().toISOString() })
+      .eq('id', channel.id);
+  } else {
+    console.log(
+      `NOT updating last_sync - no new messages were processed (${messages.length} were duplicates)`
+    );
+  }
 
   return { processed, errors };
 }
 
-async function processMessage(messageId: string, channel: any, supabase: any, accessToken: string) {
+async function processMessage(
+  messageId: string,
+  channel: any,
+  supabase: any,
+  accessToken: string
+): Promise<boolean> {
   // Get full message
   const messageUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`;
 
@@ -265,7 +292,7 @@ async function processMessage(messageId: string, channel: any, supabase: any, ac
 
   if (existingTicket) {
     console.log(`Message ${messageId} already processed, skipping`);
-    return;
+    return false;
   }
 
   // Find or create customer
@@ -333,6 +360,7 @@ async function processMessage(messageId: string, channel: any, supabase: any, ac
   await supabase.from('messages').insert(messageData);
 
   console.log(`✅ Created ticket ${ticket.id} from Gmail message ${messageId}`);
+  return true;
 }
 
 async function findOrCreateCustomer(email: string, name: string | undefined, supabase: any) {
