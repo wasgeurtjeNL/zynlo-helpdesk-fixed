@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../client';
+import { authManager } from '../auth-manager';
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -12,18 +13,8 @@ export function useUser() {
 
     async function getInitialSession() {
       try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error) {
-          // Only throw non-session errors
-          if (error.name !== 'AuthSessionMissingError') {
-            throw error;
-          }
-          // For AuthSessionMissingError, just set user to null (normal for logged-out users)
-        }
+        // Use expert auth manager to get current user
+        const user = await authManager.getCurrentUser();
 
         if (mounted) {
           setUser(user);
