@@ -137,11 +137,18 @@ function RuleEditorModal({ editingRule, onClose, onSave }: any) {
       saturday: { enabled: false, start: '09:00', end: '17:00' },
       sunday: { enabled: false, start: '09:00', end: '17:00' },
     },
-    templates: [
-      {
-        language: 'nl',
-        subject_template: 'Bedankt voor uw bericht - Ticket #{{ticket.number}}',
-        content_template: `Hallo {{customer.name}},
+    templates: editingRule?.auto_reply_templates?.length
+      ? editingRule.auto_reply_templates.map((template) => ({
+          language: template.language,
+          subject_template: template.subject_template,
+          content_template: template.content_template,
+          content_type: template.content_type,
+        }))
+      : [
+          {
+            language: 'nl',
+            subject_template: 'Bedankt voor uw bericht - Ticket #{{ticket.number}}',
+            content_template: `Hallo {{customer.name}},
 
 Bedankt voor uw bericht! We hebben uw verzoek ontvangen en een ticket aangemaakt met nummer {{ticket.number}}.
 
@@ -149,12 +156,13 @@ Een van onze medewerkers zal zo spoedig mogelijk contact met u opnemen.
 
 Met vriendelijke groet,
 Het Zynlo Support Team`,
-        content_type: 'text/html',
-      },
-    ],
+            content_type: 'text/html' as const,
+          },
+        ],
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -162,9 +170,19 @@ Het Zynlo Support Team`,
       return;
     }
 
+    if (!formData.templates[0]?.content_template.trim()) {
+      showToast('error', 'Bericht inhoud is verplicht');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      console.log('Saving auto-reply rule with data:', formData);
       await onSave(formData);
+      console.log('Auto-reply rule saved successfully');
+    } catch (error) {
+      console.error('Error saving auto-reply rule:', error);
+      showToast('error', 'Fout bij opslaan: ' + (error.message || 'Onbekende fout'));
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +282,69 @@ Het Zynlo Support Team`,
 
             {/* Template Preview */}
             <Card className="p-4">
-              <h3 className="font-medium text-gray-900 mb-4">Sjabloon voorbeeld</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-gray-900">Sjabloon voorbeeld</h3>
+                <div className="flex items-center gap-2">
+                  {/* Content Type Toggle */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-600">Format:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newTemplates = [...formData.templates];
+                        newTemplates[0] = {
+                          ...newTemplates[0],
+                          content_type:
+                            formData.templates[0]?.content_type === 'text/html'
+                              ? 'text/plain'
+                              : 'text/html',
+                        };
+                        setFormData({ ...formData, templates: newTemplates });
+                      }}
+                      className={cn(
+                        'px-3 py-1 rounded-md border transition-colors',
+                        formData.templates[0]?.content_type === 'text/html'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                      )}
+                    >
+                      HTML
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newTemplates = [...formData.templates];
+                        newTemplates[0] = {
+                          ...newTemplates[0],
+                          content_type: 'text/plain',
+                        };
+                        setFormData({ ...formData, templates: newTemplates });
+                      }}
+                      className={cn(
+                        'px-3 py-1 rounded-md border transition-colors',
+                        formData.templates[0]?.content_type === 'text/plain'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                      )}
+                    >
+                      Plain Text
+                    </button>
+                  </div>
+                  {/* Preview Toggle */}
+                  {formData.templates[0]?.content_type === 'text/html' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPreview(!showPreview)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      {showPreview ? 'Code' : 'Preview'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Onderwerp</label>
@@ -273,29 +353,68 @@ Het Zynlo Support Team`,
                     value={formData.templates[0]?.subject_template || ''}
                     onChange={(e) => {
                       const newTemplates = [...formData.templates];
-                      newTemplates[0] = { ...newTemplates[0], subject_template: e.target.value };
+                      newTemplates[0] = {
+                        ...newTemplates[0],
+                        subject_template: e.target.value,
+                        content_type: newTemplates[0]?.content_type || 'text/html',
+                      };
                       setFormData({ ...formData, templates: newTemplates });
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Bedankt voor uw bericht - Ticket #{{ticket.number}}"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Bericht inhoud *
+                    <span className="text-xs text-gray-500 ml-2">
+                      ({formData.templates[0]?.content_type === 'text/html' ? 'HTML' : 'Plain Text'}
+                      )
+                    </span>
                   </label>
-                  <textarea
-                    value={formData.templates[0]?.content_template || ''}
-                    onChange={(e) => {
-                      const newTemplates = [...formData.templates];
-                      newTemplates[0] = { ...newTemplates[0], content_template: e.target.value };
-                      setFormData({ ...formData, templates: newTemplates });
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={8}
-                    placeholder="Hallo {{customer.name}},..."
-                  />
+
+                  {showPreview && formData.templates[0]?.content_type === 'text/html' ? (
+                    // HTML Preview
+                    <div className="border border-gray-300 rounded-md">
+                      <div className="bg-gray-50 px-3 py-2 border-b border-gray-300 text-xs text-gray-600">
+                        Preview (met voorbeeld data)
+                      </div>
+                      <div
+                        className="p-3 min-h-[200px] bg-white"
+                        dangerouslySetInnerHTML={{
+                          __html: (formData.templates[0]?.content_template || '')
+                            .replace(/\{\{customer\.name\}\}/g, 'Jan de Vries')
+                            .replace(/\{\{customer\.email\}\}/g, 'jan@example.com')
+                            .replace(/\{\{ticket\.number\}\}/g, '12345')
+                            .replace(/\{\{ticket\.subject\}\}/g, 'Vraag over product'),
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    // Code/Text Editor
+                    <textarea
+                      value={formData.templates[0]?.content_template || ''}
+                      onChange={(e) => {
+                        const newTemplates = [...formData.templates];
+                        newTemplates[0] = {
+                          ...newTemplates[0],
+                          content_template: e.target.value,
+                          content_type: newTemplates[0]?.content_type || 'text/html',
+                        };
+                        setFormData({ ...formData, templates: newTemplates });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      rows={12}
+                      placeholder={
+                        formData.templates[0]?.content_type === 'text/html'
+                          ? '<p>Hallo {{customer.name}},</p>\n<p>Bedankt voor uw bericht!</p>'
+                          : 'Hallo {{customer.name}},\n\nBedankt voor uw bericht!'
+                      }
+                    />
+                  )}
                 </div>
+
                 <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-start gap-2">
                     <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -670,18 +789,60 @@ export default function AutoRepliesPage() {
           }}
           onSave={async (ruleData) => {
             try {
+              console.log('Processing rule save:', { editingRule: !!editingRule, ruleData });
+
               if (editingRule) {
-                // Update existing rule - for now just show success message
+                // Update existing rule
+                console.log('Updating existing rule with ID:', editingRule.id);
+                await updateRule.mutateAsync({
+                  ruleId: editingRule.id,
+                  updates: {
+                    name: ruleData.name,
+                    description: ruleData.description,
+                    trigger_type: ruleData.trigger_type,
+                    is_active: ruleData.is_active,
+                    priority: ruleData.priority,
+                    channel_types: ruleData.channel_types,
+                    keywords: ruleData.keywords,
+                    keyword_match_type: ruleData.keyword_match_type,
+                    business_hours: ruleData.business_hours,
+                  },
+                  templates: ruleData.templates.map((template, index) => ({
+                    ...template,
+                    language: template.language || 'nl',
+                    execution_order: index,
+                  })),
+                });
                 showToast('success', 'Regel bijgewerkt');
               } else {
-                // Create new rule - for now just show success message
+                // Create new rule
+                console.log('Creating new rule');
+                await createRule.mutateAsync({
+                  name: ruleData.name,
+                  description: ruleData.description,
+                  trigger_type: ruleData.trigger_type,
+                  is_active: ruleData.is_active,
+                  priority: ruleData.priority,
+                  channel_types: ruleData.channel_types,
+                  keywords: ruleData.keywords,
+                  keyword_match_type: ruleData.keyword_match_type,
+                  business_hours: ruleData.business_hours,
+                  templates: ruleData.templates.map((template, index) => ({
+                    ...template,
+                    language: template.language || 'nl',
+                    execution_order: index,
+                  })),
+                  conditions: [],
+                });
                 showToast('success', 'Regel aangemaakt');
               }
               setShowEditor(false);
               setEditingRule(null);
             } catch (error) {
               console.error('Error saving rule:', error);
-              showToast('error', 'Fout bij opslaan regel');
+              const errorMessage = error?.message || error?.toString() || 'Onbekende fout';
+              showToast('error', 'Fout bij opslaan regel: ' + errorMessage);
+              throw error; // Re-throw so the modal's error handling can catch it too
             }
           }}
         />

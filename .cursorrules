@@ -1,11 +1,13 @@
 # Ticketsysteem - Cursor Ruleset
 
 ## 🎯 Project Overzicht
+
 Dit is een modern ticketsysteem geïnspireerd door Trengo, gebouwd met Next.js, Supabase en TypeScript.
 
 ## 🚀 Development Guide
 
 ### Quick Start Commands
+
 ```bash
 pnpm install         # Install dependencies
 pnpm dev            # Start development server
@@ -13,6 +15,7 @@ pnpm dev:clean      # Clean build cache and start dev server
 ```
 
 ### Production Mode
+
 ```bash
 pnpm build          # Build for production
 pnpm start          # Start production server
@@ -20,6 +23,7 @@ pnpm restart        # Build and start production server
 ```
 
 ### Monorepo Commands
+
 ```bash
 pnpm -w dev         # Start all apps in development
 pnpm -F dashboard dev    # Start only dashboard
@@ -27,6 +31,7 @@ pnpm -F api-server dev   # Start only API server
 ```
 
 ### Troubleshooting
+
 ```bash
 pnpm clean          # Clean all build caches
 pnpm clean:deps     # Remove node_modules and reinstall
@@ -35,16 +40,20 @@ pnpm clean:deps     # Remove node_modules and reinstall
 ## 🔧 Common Issues & Solutions
 
 ### 1. "Cannot find module" Error
+
 **Problem**: Runtime error about missing vendor chunks
 **Solution**:
+
 ```bash
 pnpm clean
 pnpm build
 ```
 
 ### 2. "Address already in use" Error
+
 **Problem**: Port 3000 is already occupied
 **Solution**:
+
 ```bash
 # Windows
 taskkill /F /IM node.exe
@@ -55,15 +64,19 @@ pnpm dev -- -p 3001
 ```
 
 ### 3. "No production build found" Error
+
 **Problem**: Trying to start production server without build
 **Solution**:
+
 ```bash
 pnpm restart
 ```
 
 ### 4. Type Errors After Database Changes
+
 **Problem**: TypeScript types out of sync with database
 **Solution**:
+
 ```bash
 pnpm supabase:types  # Regenerate types from database
 ```
@@ -71,16 +84,19 @@ pnpm supabase:types  # Regenerate types from database
 ## 📋 Development Workflow
 
 ### After Code Changes:
+
 1. **Development**: Just save files (hot reload works)
 2. **Production**: Run `pnpm restart`
 
 ### After Database Changes:
+
 1. Create migration: `pnpm supabase migration new <name>`
 2. Apply migration: `pnpm supabase db push`
 3. Generate types: `pnpm supabase:types`
 4. Restart server: `pnpm restart`
 
 ### After Package Updates:
+
 ```bash
 pnpm install
 pnpm clean
@@ -90,12 +106,14 @@ pnpm build
 ## 🗄️ Database Operations
 
 ### Using Stored Procedures:
+
 - Always test queries in development first
 - Create procedures in `supabase/migrations/`
 - Use RLS policies for security
 - Document complex queries
 
 ### Common Database Operations:
+
 ```sql
 -- Create stored procedure for ticket assignment
 CREATE OR REPLACE FUNCTION assign_ticket(
@@ -103,7 +121,7 @@ CREATE OR REPLACE FUNCTION assign_ticket(
   agent_id UUID
 ) RETURNS void AS $$
 BEGIN
-  UPDATE tickets 
+  UPDATE tickets
   SET assignee_id = agent_id,
       status = 'open',
       updated_at = NOW()
@@ -186,9 +204,11 @@ zynlo-helpdesk/
 ```
 
 ### apps/dashboard
+
 **Doel:** Frontend UI van het ticketsysteem platform.
 
 **Regels:**
+
 - Gebruik Next.js 14+ met App Router
 - Gebruik `@/lib/supabase/client` voor alle data calls
 - Geen directe fetches in components – gebruik hooks of services
@@ -200,9 +220,11 @@ zynlo-helpdesk/
 - Gebruik `loading.tsx` en `error.tsx` voor betere UX
 
 ### apps/api-server/routes/webhooks
+
 **Doel:** Ontvangst en verwerking van inkomende berichten (WhatsApp, email, etc).
 
 **Regels:**
+
 - Endpoint naam = kanaalnaam (`/webhooks/whatsapp.ts`)
 - Altijd `POST` als HTTP methode
 - Headers authenticeren met `x-api-key` of signature verification
@@ -221,9 +243,11 @@ zynlo-helpdesk/
 - Idempotency keys implementeren tegen dubbele verwerking
 
 ### supabase/functions
+
 **Doel:** Edge Functions voor systeemtaken zoals notificaties, AI journeys, automations.
 
 **Regels:**
+
 - Pure functies – geen UI code
 - Alleen async/await gebruiken, geen callbacks
 - Parameters valideren met Zod of vergelijkbaar
@@ -241,9 +265,11 @@ zynlo-helpdesk/
 - Environment variables via Deno.env.get()
 
 ### packages/ui
+
 **Doel:** Design System voor consistente UI componenten.
 
 **Regels:**
+
 - Alle componenten moeten `className` prop ondersteunen
 - Styling via Tailwind + CVA (Class Variance Authority) voor variants
 - Elk component heeft:
@@ -256,9 +282,11 @@ zynlo-helpdesk/
 - Compound components pattern voor complexe UI
 
 ### packages/supabase
+
 **Doel:** Supabase clients, hooks, types en services.
 
 **Regels:**
+
 - Eén centrale `createClient` functie voor client/server
 - Types genereren via `supabase gen types typescript`
 - Geen hardcoded queries – gebruik query builders
@@ -276,6 +304,7 @@ zynlo-helpdesk/
 ## 🔒 Authenticatie & Security
 
 **Regels:**
+
 - Supabase Auth met support voor:
   - Email/Password
   - Magic Links
@@ -292,6 +321,7 @@ zynlo-helpdesk/
 ## 🔄 Realtime & WebSockets
 
 **Regels:**
+
 - Supabase Realtime voor live updates
 - Subscriptions altijd met cleanup in useEffect
 - Eén centrale `RealtimeProvider` voor event management
@@ -303,6 +333,7 @@ zynlo-helpdesk/
 ## 📬 Ticket & Conversatie Systeem
 
 **Database Schema:**
+
 ```sql
 -- Tickets tabel
 tickets (
@@ -339,6 +370,7 @@ messages (
 ```
 
 **Business Logic:**
+
 - Nieuwe conversatie bij eerste contact
 - Auto-assign op basis van team rules
 - SLA tracking vanaf ticket creatie
@@ -348,9 +380,10 @@ messages (
 ## ⚠️ Logging & Monitoring
 
 **Regels:**
+
 - Development: `console.debug` met context labels
   ```typescript
-  console.debug('[webhook:whatsapp]', payload)
+  console.debug('[webhook:whatsapp]', payload);
   ```
 - Production: Structured logging naar Supabase
 - Error tracking via Sentry of vergelijkbaar
@@ -363,6 +396,7 @@ messages (
 ## 📦 Build & Deployment
 
 **Regels:**
+
 - Next.js standalone build voor containers
 - Environment-specific configs
 - Health check endpoints
@@ -376,6 +410,7 @@ messages (
 ## 🚨 Code Quality Rules
 
 **Verboden:**
+
 - ❌ `any` type (gebruik `unknown` of specifieke types)
 - ❌ `fetch()` in UI componenten
 - ❌ `useEffect` zonder dependency array of cleanup
@@ -384,7 +419,35 @@ messages (
 - ❌ Synchrone heavy operations in render
 - ❌ Console.log in production code
 
+## 🔒 **KRITIEK: Beschermde Systemen - NIET WIJZIGEN**
+
+**Email Verzending Systeem:**
+
+- ❌ **WIJZIG NIET**: `apps/dashboard/app/api/send-email-reply/route.ts`
+- ❌ **WIJZIG NIET**: `apps/dashboard/lib/supabase-server.ts`
+- ❌ **WIJZIG NIET**: Gmail OAuth Edge Function `send-email-gmail`
+- ❌ **WIJZIG NIET**: Email verzending flow in `ticket-detail.tsx` (regel 1558+)
+
+**Waarom beschermd?**
+
+- ✅ **Werkend email systeem**: Succesvol getest en productie-gereed
+- ✅ **Complexe OAuth flow**: Gmail API integratie met token refresh
+- ✅ **Service role architectuur**: Specifiek ontworpen voor API routes
+- ✅ **Database integratie**: Perfecte afstemming met Supabase
+
+**Bij email problemen:**
+
+1. 📖 **Lees eerst**: `docs/EMAIL_SYSTEM.md` - volledige documentatie
+2. 🔍 **Debug stappen**: Check environment vars, OAuth tokens, logs
+3. 🚫 **Geen code wijzigingen** zonder eerst documentatie te bestuderen
+
+**Environment Variables (NIET wijzigen):**
+
+- `SUPABASE_SERVICE_ROLE_KEY` (NIET `SUPABASE_SERVICE_KEY`)
+- Gmail OAuth configuratie in Supabase Dashboard
+
 **Verplicht:**
+
 - ✅ Error boundaries rond async componenten
 - ✅ Loading states voor alle async operations
 - ✅ Proper TypeScript types (no implicit any)
@@ -395,16 +458,19 @@ messages (
 ## 🧪 Testing Strategy
 
 **Unit Tests:**
+
 - Alle utility functions
 - Custom hooks
 - API route handlers
 
 **Integration Tests:**
+
 - Database queries
 - Webhook processing
 - Authentication flows
 
 **E2E Tests:**
+
 - Critical user journeys
 - Ticket creation flow
 - Agent workflow
@@ -412,12 +478,14 @@ messages (
 ## 📝 Development Workflow
 
 **Branch Strategy:**
+
 - `main` - production
 - `develop` - staging
 - `feature/*` - nieuwe features
 - `fix/*` - bug fixes
 
 **Commit Convention:**
+
 ```
 type(scope): description
 
@@ -427,6 +495,7 @@ docs(api): update webhook documentation
 ```
 
 **PR Checklist:**
+
 - [ ] TypeScript errors opgelost
 - [ ] Tests toegevoegd/geüpdatet
 - [ ] Documentatie bijgewerkt
@@ -439,12 +508,14 @@ docs(api): update webhook documentation
 ## 🔧 Development Setup
 
 **Required Tools:**
+
 - Node.js 18+
 - pnpm (package manager)
 - Supabase CLI
 - Docker (voor local Supabase)
 
 **Environment Variables:**
+
 ```env
 # Public (safe for frontend)
 NEXT_PUBLIC_SUPABASE_URL=
@@ -459,6 +530,7 @@ SENTRY_DSN=
 ## 📚 Key Dependencies
 
 **Frontend:**
+
 - Next.js 14+
 - React 18+
 - Tailwind CSS
@@ -467,12 +539,14 @@ SENTRY_DSN=
 - Zod (validation)
 
 **Backend:**
+
 - Supabase (database, auth, realtime)
 - Deno (edge functions)
 - Bull/BullMQ (job queues)
 - Resend (email)
 
 **Development:**
+
 - TypeScript 5+
 - ESLint + Prettier
 - Vitest (testing)
@@ -489,4 +563,4 @@ SENTRY_DSN=
 
 ---
 
-Dit ruleset is je leidraad voor consistente, schaalbare development. Bij twijfel: kies voor simpliciteit, leesbaarheid en onderhoudbaarheid. 
+Dit ruleset is je leidraad voor consistente, schaalbare development. Bij twijfel: kies voor simpliciteit, leesbaarheid en onderhoudbaarheid.

@@ -260,48 +260,123 @@ export function useUpdateAutoReplyRule() {
 
       if (ruleError) throw ruleError;
 
-      // If templates are provided, replace them
+      // If templates are provided, replace them using UPSERT strategy
       if (templates) {
-        // Delete existing templates
-        await supabase.from('auto_reply_templates').delete().eq('rule_id', ruleId);
+        try {
+          // Get existing templates first
+          const { data: existingTemplates, error: fetchError } = await supabase
+            .from('auto_reply_templates')
+            .select('id, language')
+            .eq('rule_id', ruleId);
 
-        // Insert new templates
-        if (templates.length > 0) {
-          const { error: templatesError } = await supabase.from('auto_reply_templates').insert(
-            templates.map((template, index) => ({
-              rule_id: ruleId,
-              language: template.language,
-              subject_template: template.subject_template,
-              content_template: template.content_template,
-              content_type: template.content_type || 'text/html',
-              variables: template.variables || {},
-              execution_order: template.execution_order ?? index,
-            }))
+          if (fetchError) {
+            console.error('Failed to fetch existing templates:', fetchError);
+            throw new Error(`Failed to fetch existing templates: ${fetchError.message}`);
+          }
+
+          // Process each template
+          for (let index = 0; index < templates.length; index++) {
+            const template = templates[index];
+            const existingTemplate = existingTemplates?.find(
+              (t) => t.language === template.language
+            );
+
+            if (existingTemplate) {
+              // Update existing template
+              const { error: updateError } = await supabase
+                .from('auto_reply_templates')
+                .update({
+                  subject_template: template.subject_template,
+                  content_template: template.content_template,
+                  content_type: template.content_type || 'text/html',
+                  variables: template.variables || {},
+                  execution_order: template.execution_order ?? index,
+                })
+                .eq('id', existingTemplate.id);
+
+              if (updateError) {
+                console.error('Failed to update template:', updateError);
+                throw new Error(`Failed to update template: ${updateError.message}`);
+              }
+            } else {
+              // Insert new template
+              const { error: insertError } = await supabase.from('auto_reply_templates').insert({
+                rule_id: ruleId,
+                language: template.language,
+                subject_template: template.subject_template,
+                content_template: template.content_template,
+                content_type: template.content_type || 'text/html',
+                variables: template.variables || {},
+                execution_order: template.execution_order ?? index,
+              });
+
+              if (insertError) {
+                console.error('Failed to insert template:', insertError);
+                throw new Error(`Failed to insert template: ${insertError.message}`);
+              }
+            }
+          }
+
+          // Delete templates that are no longer needed
+          const templatesToDelete = existingTemplates?.filter(
+            (existing) => !templates.some((t) => t.language === existing.language)
           );
 
-          if (templatesError) throw templatesError;
+          if (templatesToDelete && templatesToDelete.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('auto_reply_templates')
+              .delete()
+              .in(
+                'id',
+                templatesToDelete.map((t) => t.id)
+              );
+
+            if (deleteError) {
+              console.warn('Failed to delete unused templates:', deleteError);
+              // Don't throw error here, as the main update was successful
+            }
+          }
+        } catch (error) {
+          console.error('Template update operation failed:', error);
+          throw error;
         }
       }
 
       // If conditions are provided, replace them
       if (conditions) {
-        // Delete existing conditions
-        await supabase.from('auto_reply_conditions').delete().eq('rule_id', ruleId);
+        try {
+          // First, try to delete existing conditions
+          const { error: deleteError } = await supabase
+            .from('auto_reply_conditions')
+            .delete()
+            .eq('rule_id', ruleId);
 
-        // Insert new conditions
-        if (conditions.length > 0) {
-          const { error: conditionsError } = await supabase.from('auto_reply_conditions').insert(
-            conditions.map((condition) => ({
-              rule_id: ruleId,
-              field: condition.field,
-              operator: condition.operator,
-              value: condition.value,
-              condition_group: condition.condition_group || 0,
-              condition_type: condition.condition_type || 'all',
-            }))
-          );
+          if (deleteError) {
+            console.error('Failed to delete existing conditions:', deleteError);
+            throw new Error(`Failed to update conditions: ${deleteError.message}`);
+          }
 
-          if (conditionsError) throw conditionsError;
+          // Insert new conditions
+          if (conditions.length > 0) {
+            const { error: conditionsError } = await supabase.from('auto_reply_conditions').insert(
+              conditions.map((condition) => ({
+                rule_id: ruleId,
+                field: condition.field,
+                operator: condition.operator,
+                value: condition.value,
+                condition_group: condition.condition_group || 0,
+                condition_type: condition.condition_type || 'all',
+              }))
+            );
+
+            if (conditionsError) {
+              console.error('Failed to insert new conditions:', conditionsError);
+              throw new Error(`Failed to create conditions: ${conditionsError.message}`);
+            }
+          }
+        } catch (error) {
+          console.error('Conditions update operation failed:', error);
+          throw error;
         }
       }
     },
