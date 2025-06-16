@@ -112,7 +112,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="demo@zynlo.com"
+                  placeholder="jouw@email.com"
                 />
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="demo123456"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
@@ -170,26 +170,6 @@ export default function LoginPage() {
               >
                 {loading ? 'Bezig met inloggen...' : 'Inloggen'}
               </button>
-            </div>
-
-            <div className="mt-4 p-4 bg-gray-100 rounded-md">
-              <p className="text-xs text-gray-600 font-semibold mb-2">Test Accounts:</p>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium">Email:</span> demo@zynlo.com
-                </p>
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium">Password:</span> demo123456
-                </p>
-              </div>
-              <div className="mt-2 pt-2 border-t border-gray-200">
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium">Email:</span> admin@wasgeurtje.nl
-                </p>
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium">Password:</span> admin123456
-                </p>
-              </div>
             </div>
           </form>
 
