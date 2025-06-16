@@ -7,12 +7,12 @@
   "ignoreCommand": "exit 1",
   "crons": [
     {
-      "path": "/api/cron/gmail-sync",
+      "path": "/api/internal/cron-trigger",
       "schedule": "* * * * *"
     }
   ],
   "functions": {
-    "app/api/cron/gmail-sync/route.ts": {
+    "app/api/internal/cron-trigger/route.ts": {
       "maxDuration": 30
     }
   }
