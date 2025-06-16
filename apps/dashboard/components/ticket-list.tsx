@@ -237,11 +237,21 @@ export function TicketList({ status, isSpam, className }: TicketListProps) {
           newSelected.add(filteredTickets[i].id);
         }
       }
-    } else {
-      // Regular click behavior - toggle selection
+    } else if (event?.ctrlKey || event?.metaKey) {
+      // CTRL/CMD + click = toggle this item without affecting others
       if (newSelected.has(ticketId)) {
         newSelected.delete(ticketId);
       } else {
+        newSelected.add(ticketId);
+      }
+    } else {
+      // Regular click without modifiers = clear selection and select only this item
+      if (newSelected.has(ticketId) && newSelected.size === 1) {
+        // If this is the only selected item, deselect it
+        newSelected.clear();
+      } else {
+        // Clear all and select only this item
+        newSelected.clear();
         newSelected.add(ticketId);
       }
     }

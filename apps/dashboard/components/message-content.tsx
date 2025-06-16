@@ -1,21 +1,37 @@
-'use client'
+'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react'
-import { Shield, ShieldOff, Eye, EyeOff, AlertTriangle, Loader2, Paperclip, Download, FileText, Image as ImageIcon, Bug } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { prepareMessageContent, extractTextFromHtml, type HtmlContentOptions } from '@/lib/html-content'
-import { useMessageAttachments } from '@zynlo/supabase'
+import { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  Shield,
+  ShieldOff,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  Loader2,
+  Paperclip,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  Bug,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  prepareMessageContent,
+  extractTextFromHtml,
+  type HtmlContentOptions,
+} from '@/lib/html-content';
+import { useMessageAttachments } from '@zynlo/supabase';
 
 interface MessageContentProps {
-  content: string
-  contentType?: string
-  className?: string
-  safeMode?: boolean
-  detectHtml?: boolean
-  showControls?: boolean
-  maxPreviewLength?: number
-  messageId?: string
-  attachments?: any[]
+  content: string;
+  contentType?: string;
+  className?: string;
+  safeMode?: boolean;
+  detectHtml?: boolean;
+  showControls?: boolean;
+  maxPreviewLength?: number;
+  messageId?: string;
+  attachments?: any[];
 }
 
 export function MessageContent({
@@ -27,111 +43,113 @@ export function MessageContent({
   showControls = true,
   maxPreviewLength = 200,
   messageId,
-  attachments: propAttachments
+  attachments: propAttachments,
 }: MessageContentProps) {
-  const [safeMode, setSafeMode] = useState(initialSafeMode)
-  const [showRaw, setShowRaw] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(true)
-  const [processedContent, setProcessedContent] = useState<any>(null)
-  const [iframeError, setIframeError] = useState<string | null>(null)
-  const [useIframe, setUseIframe] = useState(process.env.NODE_ENV === 'development')
-  const [showDebug, setShowDebug] = useState(false)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(400)
+  const [safeMode, setSafeMode] = useState(initialSafeMode);
+  const [showRaw, setShowRaw] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [processedContent, setProcessedContent] = useState<any>(null);
+  const [iframeError, setIframeError] = useState<string | null>(null);
+  const [useIframe, setUseIframe] = useState(process.env.NODE_ENV === 'development');
+  const [showDebug, setShowDebug] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(400);
 
   // Fetch attachments if messageId is provided
-  const { data: fetchedAttachments } = useMessageAttachments(messageId || '')
-  const attachments = propAttachments || fetchedAttachments || []
+  const { data: fetchedAttachments } = useMessageAttachments(messageId || '');
+  const attachments = propAttachments || fetchedAttachments || [];
 
   const options: HtmlContentOptions = {
     safeMode,
-    detectHtml
-  }
+    detectHtml,
+  };
 
   // Process content in useEffect to avoid blocking
   useEffect(() => {
-    setIsProcessing(true)
-    
+    setIsProcessing(true);
+
     // Process in next tick to avoid blocking UI
     const timer = setTimeout(() => {
       try {
-        const processed = prepareMessageContent(content, contentType, options)
-        setProcessedContent(processed)
+        const processed = prepareMessageContent(content, contentType, options);
+        setProcessedContent(processed);
         console.log('[MessageContent] Processed:', {
           isHtml: processed.isHtml,
           sanitized: processed.sanitized,
           contentLength: processed.content.length,
           originalLength: content.length,
           useIframe,
-          environment: process.env.NODE_ENV
-        })
+          environment: process.env.NODE_ENV,
+        });
       } catch (error) {
-        console.error('[MessageContent] Processing error:', error)
-        setIframeError(`Processing error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        setUseIframe(false)
+        console.error('[MessageContent] Processing error:', error);
+        setIframeError(
+          `Processing error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+        setUseIframe(false);
       }
-      setIsProcessing(false)
-    }, 0)
+      setIsProcessing(false);
+    }, 0);
 
-    return () => clearTimeout(timer)
-  }, [content, contentType, safeMode, detectHtml, useIframe])
+    return () => clearTimeout(timer);
+  }, [content, contentType, safeMode, detectHtml, useIframe]);
 
-  const hasHtmlContent = processedContent?.isHtml && !safeMode
+  const hasHtmlContent = processedContent?.isHtml && !safeMode;
 
   // For preview in safe mode
   const plainTextPreview = useMemo(
     () => extractTextFromHtml(content, maxPreviewLength),
     [content, maxPreviewLength]
-  )
+  );
 
   // Update iframe height based on content
   useEffect(() => {
-    if (!hasHtmlContent || showRaw || !iframeRef.current || !useIframe) return
+    if (!hasHtmlContent || showRaw || !iframeRef.current || !useIframe) return;
 
     const updateHeight = () => {
       try {
-        const iframe = iframeRef.current
+        const iframe = iframeRef.current;
         if (iframe?.contentDocument?.body) {
-          const newHeight = iframe.contentDocument.body.scrollHeight
-          setIframeHeight(Math.max(100, newHeight + 40))
-          console.log('[MessageContent] Updated iframe height:', newHeight)
+          const newHeight = iframe.contentDocument.body.scrollHeight;
+          setIframeHeight(Math.max(100, newHeight + 40));
+          console.log('[MessageContent] Updated iframe height:', newHeight);
         }
       } catch (e) {
-        console.warn('[MessageContent] Height update failed:', e)
+        console.warn('[MessageContent] Height update failed:', e);
         // Don't set error here as this is expected for cross-origin
       }
-    }
+    };
 
     // Initial update
-    const timer = setTimeout(updateHeight, 200)
-    
+    const timer = setTimeout(updateHeight, 200);
+
     // Watch for changes
-    const interval = setInterval(updateHeight, 1000)
+    const interval = setInterval(updateHeight, 1000);
 
     return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-    }
-  }, [hasHtmlContent, showRaw, processedContent, useIframe])
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [hasHtmlContent, showRaw, processedContent, useIframe]);
 
   // Handle iframe load errors
   const handleIframeError = (error: string) => {
-    console.error('[MessageContent] Iframe error:', error)
-    setIframeError(error)
-    setUseIframe(false)
-  }
+    console.error('[MessageContent] Iframe error:', error);
+    setIframeError(error);
+    setUseIframe(false);
+  };
 
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return <ImageIcon className="w-4 h-4" />
-    if (fileType.includes('pdf')) return <FileText className="w-4 h-4 text-red-600" />
-    return <FileText className="w-4 h-4" />
-  }
+    if (fileType.startsWith('image/')) return <ImageIcon className="w-4 h-4" />;
+    if (fileType.includes('pdf')) return <FileText className="w-4 h-4 text-red-600" />;
+    return <FileText className="w-4 h-4" />;
+  };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
 
   if (isProcessing) {
     return (
@@ -139,10 +157,10 @@ export function MessageContent({
         <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
         <span className="text-sm text-gray-500">Inhoud laden...</span>
       </div>
-    )
+    );
   }
 
-  if (!processedContent) return null
+  if (!processedContent) return null;
 
   return (
     <div className="space-y-2">
@@ -157,12 +175,12 @@ export function MessageContent({
             <button
               onClick={() => setSafeMode(!safeMode)}
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded transition-colors",
+                'flex items-center gap-1 px-2 py-1 rounded transition-colors',
                 safeMode
-                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
-              title={safeMode ? "Safe mode enabled" : "Safe mode disabled"}
+              title={safeMode ? 'Safe mode enabled' : 'Safe mode disabled'}
             >
               {safeMode ? (
                 <>
@@ -179,7 +197,7 @@ export function MessageContent({
             <button
               onClick={() => setShowRaw(!showRaw)}
               className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-              title={showRaw ? "Show formatted" : "Show raw HTML"}
+              title={showRaw ? 'Show formatted' : 'Show raw HTML'}
             >
               {showRaw ? (
                 <>
@@ -206,14 +224,18 @@ export function MessageContent({
             <button
               onClick={() => setUseIframe(!useIframe)}
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded transition-colors text-xs",
-                useIframe 
-                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
+                'flex items-center gap-1 px-2 py-1 rounded transition-colors text-xs',
+                useIframe
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
               )}
-              title={useIframe ? "Currently using iframe - click to test fallback" : "Currently using fallback - click to test iframe"}
+              title={
+                useIframe
+                  ? 'Currently using iframe - click to test fallback'
+                  : 'Currently using fallback - click to test iframe'
+              }
             >
-              <span>{useIframe ? "Using Iframe" : "Using Fallback"}</span>
+              <span>{useIframe ? 'Using Iframe' : 'Using Fallback'}</span>
             </button>
           </div>
         </div>
@@ -250,7 +272,7 @@ export function MessageContent({
       )}
 
       {/* Message content */}
-      <div className={cn("message-content", className)}>
+      <div className={cn('message-content', className)}>
         {showRaw ? (
           // Show raw content
           <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-100 p-3 rounded overflow-x-auto">
@@ -267,9 +289,9 @@ export function MessageContent({
               sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
               onError={() => handleIframeError('Iframe failed to load')}
               onLoad={() => {
-                console.log('[MessageContent] Iframe loaded successfully')
+                console.log('[MessageContent] Iframe loaded successfully');
                 // Clear any previous errors
-                setIframeError(null)
+                setIframeError(null);
               }}
               srcDoc={`
                 <!DOCTYPE html>
@@ -391,27 +413,30 @@ export function MessageContent({
             />
           ) : (
             // Fallback: direct HTML rendering with dangerouslySetInnerHTML
-            <div className={cn(
-              "rounded",
-              process.env.NODE_ENV === 'production' 
-                ? "bg-white border" 
-                : "bg-yellow-50 border border-yellow-200"
-            )}>
+            <div
+              className={cn(
+                'rounded',
+                process.env.NODE_ENV === 'production'
+                  ? 'bg-white border'
+                  : 'bg-yellow-50 border border-yellow-200'
+              )}
+            >
               {process.env.NODE_ENV !== 'production' && (
                 <div className="text-xs text-yellow-700 mb-2 p-2">
                   ⚠️ Using fallback HTML rendering (iframe not available)
                 </div>
               )}
-              <div 
+              <div
                 className="p-4 rounded"
                 style={{
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                   fontSize: '14px',
                   lineHeight: '1.6',
                   color: '#333',
-                  backgroundColor: '#fff'
+                  backgroundColor: '#fff',
                 }}
-                dangerouslySetInnerHTML={{ __html: processedContent.content }} 
+                dangerouslySetInnerHTML={{ __html: processedContent.content }}
               />
             </div>
           )
@@ -425,9 +450,9 @@ export function MessageContent({
           </div>
         ) : (
           // Plain text with line breaks preserved
-          <div 
+          <div
             className="whitespace-pre-wrap break-words text-sm text-gray-700"
-            dangerouslySetInnerHTML={{ __html: processedContent.content }} 
+            dangerouslySetInnerHTML={{ __html: processedContent.content }}
           />
         )}
       </div>
@@ -435,19 +460,21 @@ export function MessageContent({
       {/* Attachments */}
       {attachments.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs text-gray-500 font-medium">
-            Bijlagen ({attachments.length})
-          </div>
+          <div className="text-xs text-gray-500 font-medium">Bijlagen ({attachments.length})</div>
           <div className="space-y-1">
             {attachments.map((attachment: any, index: number) => (
-              <div key={attachment.id || index} className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
+              <div
+                key={attachment.id || index}
+                className="flex items-center gap-2 p-2 bg-gray-50 rounded border"
+              >
                 {getFileIcon(attachment.file_type || '')}
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-gray-900 truncate">
                     {attachment.file_name}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatFileSize(attachment.file_size || 0)} • {attachment.file_type || 'Unknown type'}
+                    {formatFileSize(attachment.file_size || 0)} •{' '}
+                    {attachment.file_type || 'Unknown type'}
                   </div>
                 </div>
                 <a
@@ -465,5 +492,5 @@ export function MessageContent({
         </div>
       )}
     </div>
-  )
-} 
+  );
+}

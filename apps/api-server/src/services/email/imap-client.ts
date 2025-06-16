@@ -78,19 +78,21 @@ export class ImapClient {
 
     if (this.config.provider === 'gmail') {
       imapConfig.host = 'imap.gmail.com';
-      
+
       if (this.config.oauth2Handler) {
-        const accessToken = await this.config.oauth2Handler.getValidAccessToken(this.config.channelId);
-        
+        const accessToken = await this.config.oauth2Handler.getValidAccessToken(
+          this.config.channelId
+        );
+
         // Get user email from channel settings
         const { data: channel } = await supabase
           .from('channels')
           .select('settings')
           .eq('id', this.config.channelId)
           .single();
-        
+
         const userEmail = (channel?.settings as any)?.email_address || this.config.username;
-        
+
         imapConfig.user = userEmail!;
         imapConfig.xoauth2 = this.buildXOAuth2String(userEmail!, accessToken);
       } else {
@@ -99,19 +101,21 @@ export class ImapClient {
       }
     } else if (this.config.provider === 'outlook') {
       imapConfig.host = 'outlook.office365.com';
-      
+
       if (this.config.oauth2Handler) {
-        const accessToken = await this.config.oauth2Handler.getValidAccessToken(this.config.channelId);
-        
+        const accessToken = await this.config.oauth2Handler.getValidAccessToken(
+          this.config.channelId
+        );
+
         // Get user email from channel settings
         const { data: channel } = await supabase
           .from('channels')
           .select('settings')
           .eq('id', this.config.channelId)
           .single();
-        
+
         const userEmail = (channel?.settings as any)?.email_address || this.config.username;
-        
+
         imapConfig.user = userEmail!;
         imapConfig.xoauth2 = this.buildXOAuth2String(userEmail!, accessToken);
       } else {
@@ -133,13 +137,8 @@ export class ImapClient {
    * Build XOAuth2 string for authentication
    */
   private buildXOAuth2String(email: string, accessToken: string): string {
-    const authString = [
-      `user=${email}`,
-      `auth=Bearer ${accessToken}`,
-      '',
-      ''
-    ].join('\x01');
-    
+    const authString = [`user=${email}`, `auth=Bearer ${accessToken}`, '', ''].join('\x01');
+
     return Buffer.from(authString).toString('base64');
   }
 
@@ -155,7 +154,7 @@ export class ImapClient {
     }
 
     const imapConfig = await this.buildImapConfig();
-    
+
     try {
       this.connection = await imaps.connect({ imap: imapConfig });
       this.connectionPool.set(poolKey, this.connection);
@@ -186,19 +185,21 @@ export class ImapClient {
     }
 
     const boxes = await this.connection!.getBoxes();
-    
+
     const folders: string[] = [];
     const extractFolders = (boxes: any, prefix = '') => {
       for (const [name, box] of Object.entries(boxes)) {
         const fullName = prefix ? `${prefix}/${name}` : name;
         folders.push(fullName);
-        
+
         if (box && typeof box === 'object' && !Array.isArray(box)) {
           // Check if it has child folders
-          const hasChildren = Object.keys(box as Record<string, any>).some(key => 
-            typeof (box as Record<string, any>)[key] === 'object' && !Array.isArray((box as Record<string, any>)[key])
+          const hasChildren = Object.keys(box as Record<string, any>).some(
+            (key) =>
+              typeof (box as Record<string, any>)[key] === 'object' &&
+              !Array.isArray((box as Record<string, any>)[key])
           );
-          
+
           if (hasChildren) {
             extractFolders(box, fullName);
           }
@@ -248,7 +249,7 @@ export class ImapClient {
         if (all.length === 0) continue;
 
         const message = all[0];
-        const parsed = await simpleParser(message.parts.find(p => p.which === '')?.body || '');
+        const parsed = await simpleParser(message.parts.find((p) => p.which === '')?.body || '');
 
         messages.push(this.convertParsedMail(parsed, item.attributes.uid));
       } catch (error) {
@@ -280,7 +281,7 @@ export class ImapClient {
     }
 
     const message = messages[0];
-    const parsed = await simpleParser(message.parts.find(p => p.which === '')?.body || '');
+    const parsed = await simpleParser(message.parts.find((p) => p.which === '')?.body || '');
 
     return this.convertParsedMail(parsed, uid);
   }
@@ -350,10 +351,10 @@ export class ImapClient {
     // Set up event listeners
     this.connection!.on('mail', async (numNewMail: number) => {
       console.log(`New mail received: ${numNewMail} messages`);
-      
+
       // Fetch new messages
       const messages = await this.fetchMessages(folder, ['UNSEEN'], numNewMail);
-      
+
       for (const message of messages) {
         onNewMessage(message);
       }
@@ -368,16 +369,19 @@ export class ImapClient {
    */
   private convertParsedMail(parsed: ParsedMail, uid: number): EmailMessage {
     const headers = new Map<string, string[]>();
-    
+
     if (parsed.headers) {
       parsed.headers.forEach((value, key) => {
         if (Array.isArray(value)) {
           // Handle string arrays
-          if (value.every(v => typeof v === 'string')) {
+          if (value.every((v) => typeof v === 'string')) {
             headers.set(key, value as string[]);
           } else {
             // Convert non-string values to strings
-            headers.set(key, value.map(v => String(v)));
+            headers.set(
+              key,
+              value.map((v) => String(v))
+            );
           }
         } else {
           headers.set(key, [String(value)]);
@@ -396,16 +400,18 @@ export class ImapClient {
       subject: parsed.subject || '',
       text: parsed.text,
       html: parsed.html || undefined,
-      attachments: (parsed.attachments || []).map(att => ({
+      attachments: (parsed.attachments || []).map((att) => ({
         filename: att.filename || 'attachment',
         contentType: att.contentType || 'application/octet-stream',
         size: att.size || 0,
         content: att.content,
       })),
       inReplyTo: parsed.inReplyTo,
-      references: parsed.references ? 
-        (Array.isArray(parsed.references) ? parsed.references : [parsed.references]) : 
-        undefined,
+      references: parsed.references
+        ? Array.isArray(parsed.references)
+          ? parsed.references
+          : [parsed.references]
+        : undefined,
       headers,
     };
   }
@@ -415,23 +421,25 @@ export class ImapClient {
    */
   private parseAddresses(addresses: any): { address: string; name?: string }[] {
     if (!addresses) return [];
-    
+
     const addressArray = Array.isArray(addresses) ? addresses : [addresses];
-    
-    return addressArray.map(addr => {
-      if (typeof addr === 'string') {
-        return { address: addr };
-      } else if (addr.value) {
-        return addr.value.map((v: any) => ({
-          address: v.address || '',
-          name: v.name,
-        }));
-      } else {
-        return {
-          address: addr.address || '',
-          name: addr.name,
-        };
-      }
-    }).flat();
+
+    return addressArray
+      .map((addr) => {
+        if (typeof addr === 'string') {
+          return { address: addr };
+        } else if (addr.value) {
+          return addr.value.map((v: any) => ({
+            address: v.address || '',
+            name: v.name,
+          }));
+        } else {
+          return {
+            address: addr.address || '',
+            name: addr.name,
+          };
+        }
+      })
+      .flat();
   }
-} 
+}

@@ -3,16 +3,16 @@ export { supabase, createServerClient } from './client';
 
 // Service exports
 export { TicketService } from './services/TicketService';
-export type { 
-  Ticket, 
-  TicketInsert, 
-  TicketUpdate, 
-  TicketStatus, 
+export type {
+  Ticket,
+  TicketInsert,
+  TicketUpdate,
+  TicketStatus,
   TicketPriority,
   TicketWithRelations,
   CreateTicketParams,
   SearchTicketParams,
-  TicketStats
+  TicketStats,
 } from './services/TicketService';
 
 // Hook exports
@@ -34,17 +34,18 @@ export * from './hooks/signatures';
 export * from './hooks/attachments';
 export * from './hooks/savedReplies';
 export * from './hooks/useChannels';
+export * from './hooks/useAutoReplies';
 
 // AI usage hooks
-export { 
+export {
   useCheckAIUsage,
   useRecordAIUsage,
   useAIUsageHistory,
   useAIUsageSummary,
-  useUserAILimits
+  useUserAILimits,
 } from './hooks/aiUsage';
 
 // Type exports
 export type { Database } from './types/database';
 
-export * from './types/database'; 
+export * from './types/database';

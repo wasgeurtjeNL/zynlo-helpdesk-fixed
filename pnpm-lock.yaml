@@ -320,6 +320,9 @@ importers:
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(postcss@8.5.3)(typescript@5.8.3)
       typescript:
         specifier: ^5.3.2
         version: 5.8.3
