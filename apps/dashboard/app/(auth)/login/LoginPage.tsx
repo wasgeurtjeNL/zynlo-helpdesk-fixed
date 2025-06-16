@@ -84,6 +84,33 @@ export default function LoginPage() {
     }
   };
 
+  const handleOAuthLogin = async (provider: 'google' | 'microsoft') => {
+    try {
+      setError(null);
+      setDebugInfo(`Starting ${provider} login...`);
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'microsoft' ? 'azure' : provider,
+        options: {
+          redirectTo: `${window.location.origin}/inbox/nieuw`,
+        },
+      });
+
+      if (error) {
+        console.error(`${provider} OAuth error:`, error);
+        throw error;
+      }
+
+      setDebugInfo(`${provider} login initiated...`);
+    } catch (err: any) {
+      console.error(`${provider} login error:`, err);
+      setError(err.message || `Er is een fout opgetreden bij het inloggen met ${provider}`);
+      setDebugInfo(`Error: ${err.message}`);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -211,13 +238,17 @@ export default function LoginPage() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                onClick={() => handleOAuthLogin('google')}
+                disabled={loading}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Google
               </button>
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                onClick={() => handleOAuthLogin('microsoft')}
+                disabled={loading}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Microsoft
               </button>
