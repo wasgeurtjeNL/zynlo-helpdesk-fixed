@@ -260,47 +260,24 @@ export function useUpdateAutoReplyRule() {
 
       if (ruleError) throw ruleError;
 
-      // If templates are provided, replace them using UPSERT strategy
+      // If templates are provided, replace them completely
       if (templates) {
         try {
-          // Get existing templates first
-          const { data: existingTemplates, error: fetchError } = await supabase
+          // First, delete all existing templates for this rule
+          const { error: deleteError } = await supabase
             .from('auto_reply_templates')
-            .select('id, language')
+            .delete()
             .eq('rule_id', ruleId);
 
-          if (fetchError) {
-            console.error('Failed to fetch existing templates:', fetchError);
-            throw new Error(`Failed to fetch existing templates: ${fetchError.message}`);
+          if (deleteError) {
+            console.error('Failed to delete existing templates:', deleteError);
+            throw new Error(`Failed to delete existing templates: ${deleteError.message}`);
           }
 
-          // Process each template
-          for (let index = 0; index < templates.length; index++) {
-            const template = templates[index];
-            const existingTemplate = existingTemplates?.find(
-              (t) => t.language === template.language
-            );
-
-            if (existingTemplate) {
-              // Update existing template
-              const { error: updateError } = await supabase
-                .from('auto_reply_templates')
-                .update({
-                  subject_template: template.subject_template,
-                  content_template: template.content_template,
-                  content_type: template.content_type || 'text/html',
-                  variables: template.variables || {},
-                  execution_order: template.execution_order ?? index,
-                })
-                .eq('id', existingTemplate.id);
-
-              if (updateError) {
-                console.error('Failed to update template:', updateError);
-                throw new Error(`Failed to update template: ${updateError.message}`);
-              }
-            } else {
-              // Insert new template
-              const { error: insertError } = await supabase.from('auto_reply_templates').insert({
+          // Then insert all new templates
+          if (templates.length > 0) {
+            const { error: insertError } = await supabase.from('auto_reply_templates').insert(
+              templates.map((template, index) => ({
                 rule_id: ruleId,
                 language: template.language,
                 subject_template: template.subject_template,
@@ -308,32 +285,12 @@ export function useUpdateAutoReplyRule() {
                 content_type: template.content_type || 'text/html',
                 variables: template.variables || {},
                 execution_order: template.execution_order ?? index,
-              });
+              }))
+            );
 
-              if (insertError) {
-                console.error('Failed to insert template:', insertError);
-                throw new Error(`Failed to insert template: ${insertError.message}`);
-              }
-            }
-          }
-
-          // Delete templates that are no longer needed
-          const templatesToDelete = existingTemplates?.filter(
-            (existing) => !templates.some((t) => t.language === existing.language)
-          );
-
-          if (templatesToDelete && templatesToDelete.length > 0) {
-            const { error: deleteError } = await supabase
-              .from('auto_reply_templates')
-              .delete()
-              .in(
-                'id',
-                templatesToDelete.map((t) => t.id)
-              );
-
-            if (deleteError) {
-              console.warn('Failed to delete unused templates:', deleteError);
-              // Don't throw error here, as the main update was successful
+            if (insertError) {
+              console.error('Failed to insert new templates:', insertError);
+              throw new Error(`Failed to insert new templates: ${insertError.message}`);
             }
           }
         } catch (error) {
