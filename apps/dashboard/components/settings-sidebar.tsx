@@ -27,6 +27,7 @@ import {
   BarChart3,
   Sparkles,
   MessageSquare,
+  Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/components/auth-provider';
@@ -114,6 +115,12 @@ const settingsNavigation = [
     items: [
       { id: 'billing', label: 'Facturering', icon: CreditCard, href: '/settings/billing' },
       { id: 'security', label: 'Beveiliging', icon: Shield, href: '/settings/security' },
+      {
+        id: 'login-sessions',
+        label: 'Login Sessies',
+        icon: Monitor,
+        href: '/settings/login-sessions',
+      },
       { id: 'notifications', label: 'Notificaties', icon: Bell, href: '/settings/notifications' },
     ],
   },

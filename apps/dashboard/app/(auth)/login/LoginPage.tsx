@@ -47,6 +47,31 @@ export default function LoginPage() {
         throw error;
       }
 
+      setDebugInfo('Login successful! Logging session...');
+
+      // Log successful login attempt
+      if (data?.user?.id && data?.session?.access_token) {
+        try {
+          const logResponse = await fetch('/api/auth/log-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              success: true,
+              loginMethod: 'email_password',
+              sessionId: data.session.access_token,
+            }),
+          });
+
+          if (logResponse.ok) {
+            const logData = await logResponse.json();
+            console.log('Login session logged:', logData);
+          }
+        } catch (logError) {
+          console.warn('Failed to log successful login attempt:', logError);
+        }
+      }
+
       setDebugInfo('Login successful! Redirecting...');
 
       // The AuthProvider will handle the redirect
