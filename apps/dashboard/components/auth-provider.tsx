@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { User, Session } from '@supabase/supabase-js';
-import { useAuthManager } from '@zynlo/supabase/hooks/useAuthManager';
+import { useAuthManager } from '@zynlo/supabase';
 
 interface AuthContextType {
   user: User | null;
