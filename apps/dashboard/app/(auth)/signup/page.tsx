@@ -51,13 +51,13 @@ export default function SignupPage() {
       setError(null);
       setLoading(true);
 
-      // Determine the correct redirect URL based on environment
-      const isProduction =
-        window.location.hostname === 'zynlo.io' || window.location.hostname.includes('vercel.app');
+      // Force redirect to production unless explicitly on localhost
+      const productionUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zynlo.io';
+      const isLocalhost = window.location.hostname === 'localhost';
 
-      const redirectTo = isProduction
-        ? 'https://zynlo.io/inbox/nieuw'
-        : `${window.location.origin}/inbox/nieuw`;
+      const redirectTo = isLocalhost
+        ? `${window.location.origin}/inbox/nieuw` // Local development only
+        : `${productionUrl}/inbox/nieuw`; // Always use production URL
 
       console.log('OAuth signup redirect URL:', redirectTo);
 
