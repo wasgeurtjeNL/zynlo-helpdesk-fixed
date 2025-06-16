@@ -7,7 +7,7 @@
   "ignoreCommand": "exit 1",
   "crons": [
     {
-      "path": "/api/cron/gmail-sync-direct",
+        "path": "/api/cron/gmail-sync-direct",
       "schedule": "* * * * *"
     }
   ],
