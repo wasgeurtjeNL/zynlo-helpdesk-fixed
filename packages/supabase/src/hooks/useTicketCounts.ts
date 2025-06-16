@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../client';
+import { authManager } from '../auth-manager';
 
 interface TicketCounts {
   new: number;
@@ -19,15 +20,8 @@ export function useTicketCounts() {
   return useQuery({
     queryKey: ['ticket-counts'],
     queryFn: async () => {
-      // Get current user
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError && authError.name !== 'AuthSessionMissingError') {
-        console.error('Auth error in useTicketCounts:', authError);
-        throw authError;
-      }
+      // Get current user safely using auth manager
+      const user = await authManager.getCurrentUser();
       if (!user) throw new Error('No user found');
 
       // Get all counts using the updated stored procedure

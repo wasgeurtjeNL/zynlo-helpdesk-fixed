@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../client';
+import { authManager } from '../auth-manager';
 
 // Types for auto-reply system
 export interface AutoReplyRule {
@@ -164,14 +165,14 @@ export function useCreateAutoReplyRule() {
 
   return useMutation({
     mutationFn: async (params: CreateAutoReplyRuleParams) => {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
+      const user = await authManager.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
 
       // Get user's organization
       const { data: userData } = await supabase
         .from('users')
         .select('organization_id')
-        .eq('id', user.user.id)
+        .eq('id', user.id)
         .single();
 
       // Create the rule
@@ -187,7 +188,7 @@ export function useCreateAutoReplyRule() {
           business_hours: params.business_hours || { enabled: false },
           keywords: params.keywords || [],
           keyword_match_type: params.keyword_match_type || 'any',
-          created_by: user.user.id,
+          created_by: user.id,
           organization_id: userData?.organization_id,
         })
         .select()
@@ -640,14 +641,14 @@ export function useAutoReplyStats() {
   return useQuery({
     queryKey: ['auto-reply-stats'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
+      const user = await authManager.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
 
       // Get user's organization
       const { data: userData } = await supabase
         .from('users')
         .select('organization_id')
-        .eq('id', user.user.id)
+        .eq('id', user.id)
         .single();
 
       // Get rules count by status

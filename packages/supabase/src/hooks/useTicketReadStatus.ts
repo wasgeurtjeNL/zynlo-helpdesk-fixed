@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../client';
+import { authManager } from '../auth-manager';
 import type { Database } from '../types/database.types';
 
 /**
@@ -11,15 +12,8 @@ export function useTicketUnreadStatus(ticketIds: string[]) {
     queryFn: async () => {
       if (!ticketIds.length) return [];
 
-      // Get current user
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError && authError.name !== 'AuthSessionMissingError') {
-        console.error('Auth error in useTicketUnreadStatus:', authError);
-        throw authError;
-      }
+      // Get current user safely using auth manager
+      const user = await authManager.getCurrentUser();
       if (!user) return [];
 
       // Check which tickets are unread by querying ticket_read_status
@@ -55,15 +49,8 @@ export function useUnreadTicketCount() {
   return useQuery({
     queryKey: ['unread-ticket-count'],
     queryFn: async () => {
-      // Get current user
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError && authError.name !== 'AuthSessionMissingError') {
-        console.error('Auth error in useUnreadTicketCount:', authError);
-        throw authError;
-      }
+      // Get current user safely using auth manager
+      const user = await authManager.getCurrentUser();
       if (!user) return 0;
 
       // Get total ticket count

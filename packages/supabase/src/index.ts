@@ -1,6 +1,11 @@
 // Client exports
 export { supabase, createServerClient } from './client';
 
+// Auth manager exports
+export { authManager } from './auth-manager';
+export type { AuthState } from './auth-manager';
+export { useAuthManager } from './hooks/useAuthManager';
+
 // Service exports
 export { TicketService } from './services/TicketService';
 export type {

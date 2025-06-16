@@ -1,14 +1,18 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@zynlo/supabase';
+import { User, Session } from '@supabase/supabase-js';
+import { useAuthManager } from '@zynlo/supabase/hooks/useAuthManager';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   loading: boolean;
+  initialized: boolean;
+  isAuthenticated: boolean;
   signOut: () => Promise<void>;
+  getCurrentUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,110 +26,51 @@ export function useAuthContext() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const initialized = useRef(false);
 
+  // Use the expert auth manager
+  const {
+    user,
+    session,
+    loading,
+    initialized,
+    isAuthenticated,
+    signOut: authSignOut,
+    getCurrentUser,
+  } = useAuthManager();
+
+  // Handle authentication redirects
   useEffect(() => {
-    // Prevent multiple initializations
-    if (initialized.current) return;
-    initialized.current = true;
+    if (!initialized) return; // Wait for auth to initialize
 
-    // Get initial user
-    const getInitialUser = async () => {
-      try {
-        // First check if there's a session to avoid AuthSessionMissingError
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
 
-        if (session?.user) {
-          // If we have a session, get the fresh user data
-          const {
-            data: { user },
-            error,
-          } = await supabase.auth.getUser();
-          if (error) {
-            // Only log non-session errors
-            if (error.name !== 'AuthSessionMissingError') {
-              console.error('Error getting user:', error);
-            }
-            setUser(null);
-          } else {
-            setUser(user);
-          }
-        } else {
-          // No session, user is not logged in
-          setUser(null);
-        }
-      } catch (error: any) {
-        // Only log unexpected errors, not session missing errors
-        if (error?.name !== 'AuthSessionMissingError') {
-          console.error('Error in getInitialUser:', error);
-        }
-        setUser(null);
-      } finally {
-        setLoading(false);
+    if (isAuthenticated) {
+      // User is authenticated, redirect from auth pages to inbox
+      if (isAuthPage) {
+        router.push('/inbox/nieuw');
       }
-    };
-
-    getInitialUser();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Only log significant events, not repeated INITIAL_SESSION
-      if (event !== 'INITIAL_SESSION') {
-        console.log('Auth state changed:', event, session?.user?.email);
-      }
-
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      // Redirect logic - only for actual sign in/out events
-      if (event === 'SIGNED_IN' && session?.user) {
-        // If user just signed in, redirect to inbox
-        if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
-          router.push('/inbox/nieuw');
-        }
-      } else if (event === 'SIGNED_OUT') {
-        // If user signed out, redirect to login
-        router.push('/login');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      initialized.current = false;
-    };
-  }, [router, pathname]);
-
-  // Redirect to login if not authenticated and not on auth pages
-  useEffect(() => {
-    if (!loading && !user) {
-      const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
+    } else {
+      // User is not authenticated, redirect to login (except for auth pages)
       if (!isAuthPage) {
         router.push(`/login?redirectedFrom=${encodeURIComponent(pathname)}`);
       }
     }
-  }, [user, loading, pathname, router]);
+  }, [initialized, isAuthenticated, pathname, router]);
 
+  // Enhanced signOut function with redirect
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-      }
+      await authSignOut();
+      router.push('/login');
     } catch (error) {
-      console.error('Error in signOut:', error);
+      console.error('Error signing out:', error);
     }
   };
 
-  // Show loading spinner while checking auth
-  if (loading) {
+  // Show loading spinner while initializing auth
+  if (!initialized || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -133,11 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Show login page if not authenticated and on auth pages
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
-  if (!user && !isAuthPage) {
-    return null; // Will redirect via useEffect
-  }
+  // Auth context value
+  const contextValue: AuthContextType = {
+    user,
+    session,
+    loading,
+    initialized,
+    isAuthenticated,
+    signOut,
+    getCurrentUser,
+  };
 
-  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
