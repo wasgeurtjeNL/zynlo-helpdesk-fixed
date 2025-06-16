@@ -12,17 +12,30 @@ export function useUser() {
 
     async function getInitialSession() {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) throw error;
-        
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error) {
+          // Only throw non-session errors
+          if (error.name !== 'AuthSessionMissingError') {
+            throw error;
+          }
+          // For AuthSessionMissingError, just set user to null (normal for logged-out users)
+        }
+
         if (mounted) {
           setUser(user);
           setLoading(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         if (mounted) {
-          setError(error as Error);
+          // Only set error for unexpected errors
+          if (error?.name !== 'AuthSessionMissingError') {
+            setError(error as Error);
+          }
+          setUser(null);
           setLoading(false);
         }
       }
@@ -30,14 +43,12 @@ export function useUser() {
 
     getInitialSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (mounted) {
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setLoading(false);
       }
-    );
+    });
 
     return () => {
       mounted = false;
@@ -52,9 +63,9 @@ export function useUser() {
         email,
         password,
       });
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       setError(error as Error);
@@ -74,9 +85,9 @@ export function useUser() {
           data: metadata,
         },
       });
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       setError(error as Error);
@@ -90,9 +101,9 @@ export function useUser() {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       setError(error as Error);
@@ -110,4 +121,4 @@ export function useUser() {
     signUp,
     signOut,
   };
-} 
+}
