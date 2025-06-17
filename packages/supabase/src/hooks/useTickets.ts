@@ -231,7 +231,7 @@ export function useTicket(ticketNumber: number) {
       // Get the conversation ID
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
-        .select('id')
+        .select('*')
         .eq('ticket_id', ticket.id)
         .single();
 
@@ -283,7 +283,7 @@ export function useTicket(ticketNumber: number) {
 
       return {
         ...ticket,
-        conversation: conversation ? { id: conversation.id } : null,
+        conversation: conversation || null,
         messages: processedMessages,
       };
     },
