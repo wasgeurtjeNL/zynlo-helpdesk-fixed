@@ -78,6 +78,10 @@ import { showToast } from './toast';
 import { createClient } from '@supabase/supabase-js';
 import { ActiveUsers } from './presence/active-users';
 import { TypingIndicator } from './presence/typing-indicator';
+import { sanitizeEmailContent } from '../lib/sanitize-content';
+
+// Debug import (only in development)
+import { TicketLoadingDebug } from './ticket-loading-debug';
 
 // Animation imports
 import { motion, AnimatePresence } from 'framer-motion';
@@ -402,7 +406,7 @@ function ConversationThread({
                     )}
                   >
                     <MessageContent
-                      content={message.content}
+                      content={sanitizeEmailContent(message.content)}
                       contentType={message.content_type || undefined}
                       messageId={message.id}
                       attachments={message.attachments || undefined}
@@ -1905,7 +1909,15 @@ export function TicketDetail({ ticketNumber }: TicketDetailProps) {
             )}
           </div>
         </div>
+
+        {/* Right Sidebar - Task Panel */}
+        <TaskPanel ticket={effectiveTicket} tasks={ticketTasks || []} />
       </div>
     </div>
-  );
+
+    {/* Debug component - only in development */}
+    {process.env.NODE_ENV === 'development' && (
+      <TicketLoadingDebug ticketNumber={ticketNumber} />
+    )}
+  </>
 }
