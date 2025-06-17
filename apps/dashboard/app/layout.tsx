@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { AuthProvider } from '@/components/auth-provider';
+import { Providers } from '@/components/providers';
 import { ClientInitializer } from '@/components/client-initializer';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <ClientInitializer />
-        <AuthProvider>{children}</AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

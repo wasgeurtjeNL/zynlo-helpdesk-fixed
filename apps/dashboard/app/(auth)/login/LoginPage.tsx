@@ -48,10 +48,8 @@ export default function LoginPage() {
   const vantaEffect = useRef<any>(null);
 
   // Load external scripts
-  const threeScript = useScript(
-    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js'
-  );
-  const vantaScript = useScript('https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js');
+  const threeScript = useScript('https://unpkg.com/three@0.134.0/build/three.min.js');
+  const vantaScript = useScript('https://unpkg.com/vanta@0.5.24/dist/vanta.net.min.js');
 
   // Initialize Vanta effect
   useEffect(() => {
