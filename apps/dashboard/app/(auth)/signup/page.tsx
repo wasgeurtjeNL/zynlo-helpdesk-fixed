@@ -51,20 +51,10 @@ export default function SignupPage() {
       setError(null);
       setLoading(true);
 
-      // Force redirect to production unless explicitly on localhost
-      const productionUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zynlo.io';
-      const isLocalhost = window.location.hostname === 'localhost';
-
-      const redirectTo = isLocalhost
-        ? `${window.location.origin}/inbox/nieuw` // Local development only
-        : `${productionUrl}/inbox/nieuw`; // Always use production URL
-
-      console.log('OAuth signup redirect URL:', redirectTo);
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider === 'microsoft' ? 'azure' : provider,
         options: {
-          redirectTo,
+          redirectTo: `${window.location.origin}/inbox/nieuw`,
         },
       });
 
