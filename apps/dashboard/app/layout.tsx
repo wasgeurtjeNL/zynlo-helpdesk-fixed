@@ -1,24 +1,34 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/providers";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { AuthProvider } from '@/components/auth-provider';
+import Script from 'next/script';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Zynlo Helpdesk",
-  description: "Modern ticketing system for customer support",
+  title: 'Zynlo Helpdesk',
+  description: 'Modern ticketing system for customer support',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl" suppressHydrationWarning>
+      <head>
+        <Script id="fetch-user-role-fix" strategy="beforeInteractive">
+          {`
+            // Temporary fix for fetchUserRole error
+            if (typeof window !== 'undefined' && !window.fetchUserRole) {
+              window.fetchUserRole = async function() {
+                console.warn('fetchUserRole was called but is not implemented. This is a temporary fix.');
+                return null;
+              };
+            }
+          `}
+        </Script>
+      </head>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
