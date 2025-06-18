@@ -86,6 +86,18 @@ import { TicketLoadingDebug } from './ticket-loading-debug';
 // Animation imports
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Placeholder for TaskPanel component
+function TaskPanel({ ticket, tasks }: { ticket: any; tasks: any[] }) {
+  return (
+    <div className="mb-6">
+      <h3 className="text-sm font-semibold text-gray-900 mb-3">Taken</h3>
+      <div className="bg-white rounded-lg p-4">
+        <p className="text-sm text-gray-500">Geen taken</p>
+      </div>
+    </div>
+  );
+}
+
 type TicketStatus = Database['public']['Enums']['ticket_status'];
 type TicketPriority = Database['public']['Enums']['ticket_priority'];
 
@@ -1913,11 +1925,9 @@ export function TicketDetail({ ticketNumber }: TicketDetailProps) {
         {/* Right Sidebar - Task Panel */}
         <TaskPanel ticket={effectiveTicket} tasks={ticketTasks || []} />
       </div>
-    </div>
 
-    {/* Debug component - only in development */}
-    {process.env.NODE_ENV === 'development' && (
-      <TicketLoadingDebug ticketNumber={ticketNumber} />
-    )}
-  </>
+      {/* Debug component - only in development */}
+      {process.env.NODE_ENV === 'development' && <TicketLoadingDebug ticketNumber={ticketNumber} />}
+    </div>
+  );
 }
