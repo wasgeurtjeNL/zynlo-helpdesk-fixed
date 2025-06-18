@@ -156,3 +156,32 @@ export function sanitizeHtmlForHttps(html: string): string {
     .replace(/src="http:\/\//g, 'src="https://')
     .replace(/href="http:\/\//g, 'href="https://');
 }
+
+/**
+ * Remove or replace cid: images that don't work in browsers
+ * CID (Content-ID) images are used in emails but not supported by browsers
+ */
+export function processCidImages(html: string): string {
+  // Replace cid: images with a placeholder message
+  // Pattern matches src="cid:..." in any form
+  return html.replace(
+    /<img[^>]*src\s*=\s*["']cid:[^"']*["'][^>]*>/gi,
+    '<span style="display: inline-block; padding: 4px 8px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; color: #6b7280; font-size: 12px;">[Inline afbeelding]</span>'
+  );
+}
+
+/**
+ * Process HTML content to make it safe for browser display
+ * Combines all HTML optimization functions
+ */
+export function optimizeHtmlForDisplay(html: string): string {
+  let optimized = html;
+
+  // First, force HTTPS
+  optimized = sanitizeHtmlForHttps(optimized);
+
+  // Then, handle CID images
+  optimized = processCidImages(optimized);
+
+  return optimized;
+}

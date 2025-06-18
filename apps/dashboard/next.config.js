@@ -15,7 +15,7 @@ const nextConfig = {
   },
   // Disable static optimization for problematic pages
   generateBuildId: async () => {
-    return 'build-' + Date.now()
+    return 'build-' + Date.now();
   },
   // Add headers to suppress external resource errors
   async headers() {
@@ -25,15 +25,16 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "img-src 'self' data: https: blob:; connect-src 'self' https: wss: ws:; default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"
+            value:
+              "img-src 'self' data: https: blob:; connect-src 'self' https: wss: ws:; default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;",
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
-          }
+            value: 'strict-origin-when-cross-origin',
+          },
         ],
       },
-    ]
+    ];
   },
 };
 

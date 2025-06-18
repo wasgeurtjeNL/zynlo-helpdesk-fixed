@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { optimizeHtmlForDisplay } from '@/lib/html-optimizer';
 
 interface MessageContentProps {
   content: string;
@@ -189,7 +190,7 @@ export function MessageContent({
                     }
                   </style>
                 </head>
-                <body>${content}</body>
+                <body>${optimizeHtmlForDisplay(content)}</body>
                 </html>
               `}
               className="w-full border-0 rounded"
