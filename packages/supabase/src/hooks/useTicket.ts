@@ -1,9 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '../client';
+import { supabase } from '../client';
 import { useEffect } from 'react';
 import type { Database } from '../types/database.types';
-
-const supabase = createClient();
 
 export function useTicket(ticketNumber: number) {
   const queryClient = useQueryClient();
@@ -126,7 +124,7 @@ export function useTicket(ticketNumber: number) {
         table: 'tickets',
         filter: `id=eq.${ticketId}`,
       },
-      (payload) => {
+      (payload: any) => {
         console.log('Ticket update received:', payload);
         queryClient.invalidateQueries({ queryKey: ['ticket', ticketNumber] });
       }
@@ -142,7 +140,7 @@ export function useTicket(ticketNumber: number) {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        (payload: any) => {
           console.log('Message update received:', payload);
           queryClient.invalidateQueries({ queryKey: ['ticket', ticketNumber] });
         }
@@ -158,14 +156,14 @@ export function useTicket(ticketNumber: number) {
         table: 'conversations',
         filter: `ticket_id=eq.${ticketId}`,
       },
-      (payload) => {
+      (payload: any) => {
         console.log('Conversation update received:', payload);
         queryClient.invalidateQueries({ queryKey: ['ticket', ticketNumber] });
       }
     );
 
     // Subscribe
-    ticketChannel.subscribe((status) => {
+    ticketChannel.subscribe((status: any) => {
       console.log('Realtime subscription status:', status);
     });
 
