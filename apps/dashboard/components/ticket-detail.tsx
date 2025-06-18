@@ -70,10 +70,7 @@ import {
 } from '@zynlo/supabase';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@zynlo/supabase';
-import { useSelectedTicketSafe } from '@/hooks/use-selected-ticket';
 import { useRouter } from 'next/navigation';
-import { formatDistanceToNow, format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { showToast } from '@/components/toast';
 import { createClient } from '@supabase/supabase-js';
 import { ActiveUsers } from './presence/active-users';
@@ -560,8 +557,8 @@ function ReplyPanel({ ticket, onSendMessage, userSignature, visible, onScroll }:
 
   // Real implementations for hooks
   const draft = null;
-  const saveDraft = { mutate: () => {} };
-  const deleteDraft = { mutate: () => {} };
+  const saveDraft = { mutate: (args: any) => {} };
+  const deleteDraft = { mutate: (args: any) => {} };
   const uploadAttachment = { mutate: () => {} };
 
   // Use real saved replies hooks
@@ -641,7 +638,7 @@ function ReplyPanel({ ticket, onSendMessage, userSignature, visible, onScroll }:
     if (!user?.id || !ticket.id) return;
 
     const timeoutId = setTimeout(() => {
-      if (newMessage && newMessage !== draft?.content) {
+      if (newMessage && newMessage !== (draft as any)?.content) {
         saveDraft.mutate({
           ticketId: ticket.id,
           userId: user.id,
@@ -653,7 +650,7 @@ function ReplyPanel({ ticket, onSendMessage, userSignature, visible, onScroll }:
     }, 1000); // Save after 1 second of inactivity
 
     return () => clearTimeout(timeoutId);
-  }, [newMessage, isInternalNote, user?.id, ticket.id]);
+  }, [newMessage, isInternalNote, user?.id, ticket.id, saveDraft, draft]);
 
   // Auto-collapse when scrolling up
   useEffect(() => {
