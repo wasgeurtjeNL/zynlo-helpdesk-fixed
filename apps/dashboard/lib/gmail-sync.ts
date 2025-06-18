@@ -167,7 +167,7 @@ export class GmailSyncService {
           gmail_message_id: messageId,
           gmail_thread_id: message.threadId,
           channel_id: channel.id,
-          created_via: 'gmail_sync',
+          created_via: 'gmail_sync_v18',
         },
       };
 
@@ -205,22 +205,23 @@ export class GmailSyncService {
       // Create message
       const messageData = {
         conversation_id: conversation.id,
-        content: text || html || message.snippet || '',
-        content_type: html ? 'html' : 'text',
+        content: html || text || message.snippet || '',
+        content_type: html ? 'text/html' : 'text/plain',
         sender_type: 'customer' as const,
         sender_id: fromEmail,
         metadata: {
-          from: fromEmail,
-          from_name: fromName,
+          from: { email: fromEmail, name: fromName },
           subject,
           gmail_message_id: messageId,
           received_at: new Date(parseInt(message.internalDate)).toISOString(),
+          originalHtml: html || null,
         },
       };
 
       const { error: messageError } = await supabase.from('messages').insert(messageData);
 
       if (messageError) {
+        console.error('Error creating message:', messageError);
         throw messageError;
       }
 
@@ -248,7 +249,7 @@ export class GmailSyncService {
       email,
       name: name || email.split('@')[0],
       metadata: {
-        created_via: 'gmail_sync',
+        created_via: 'gmail_sync_v18',
       },
     };
 
