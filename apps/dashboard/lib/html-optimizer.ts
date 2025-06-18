@@ -8,10 +8,10 @@
  */
 export function stripBase64Images(html: string): string {
   // Regex to match base64 image data URLs
-  const base64Regex = /data:image\/[^;]+;base64,[^"'\s]+/gi
-  
+  const base64Regex = /data:image\/[^;]+;base64,[^"'\s]+/gi;
+
   // Replace base64 images with placeholder
-  return html.replace(base64Regex, '[AFBEELDING VERWIJDERD]')
+  return html.replace(base64Regex, '[AFBEELDING VERWIJDERD]');
 }
 
 /**
@@ -20,8 +20,8 @@ export function stripBase64Images(html: string): string {
  */
 export function stripInlineStyles(html: string): string {
   // Remove style attributes
-  const styleRegex = /\sstyle\s*=\s*["'][^"']*["']/gi
-  return html.replace(styleRegex, '')
+  const styleRegex = /\sstyle\s*=\s*["'][^"']*["']/gi;
+  return html.replace(styleRegex, '');
 }
 
 /**
@@ -29,39 +29,39 @@ export function stripInlineStyles(html: string): string {
  * Returns array of extracted images with metadata
  */
 export function extractBase64Images(html: string): Array<{
-  index: number
-  dataUrl: string
-  mimeType: string
-  sizeEstimate: number
+  index: number;
+  dataUrl: string;
+  mimeType: string;
+  sizeEstimate: number;
 }> {
   const images: Array<{
-    index: number
-    dataUrl: string
-    mimeType: string
-    sizeEstimate: number
-  }> = []
-  
-  const base64Regex = /data:image\/([^;]+);base64,([^"'\s]+)/gi
-  let match
-  let index = 0
-  
+    index: number;
+    dataUrl: string;
+    mimeType: string;
+    sizeEstimate: number;
+  }> = [];
+
+  const base64Regex = /data:image\/([^;]+);base64,([^"'\s]+)/gi;
+  let match;
+  let index = 0;
+
   while ((match = base64Regex.exec(html)) !== null) {
-    const mimeType = match[1]
-    const base64Data = match[2]
-    const dataUrl = match[0]
-    
+    const mimeType = match[1];
+    const base64Data = match[2];
+    const dataUrl = match[0];
+
     // Estimate size (base64 is ~33% larger than binary)
-    const sizeEstimate = Math.floor(base64Data.length * 0.75)
-    
+    const sizeEstimate = Math.floor(base64Data.length * 0.75);
+
     images.push({
       index: index++,
       dataUrl,
       mimeType,
-      sizeEstimate
-    })
+      sizeEstimate,
+    });
   }
-  
-  return images
+
+  return images;
 }
 
 /**
@@ -71,85 +71,88 @@ export function extractBase64Images(html: string): Array<{
 export function optimizeHtmlForStorage(
   html: string,
   options: {
-    stripImages?: boolean
-    stripStyles?: boolean
-    preserveStructure?: boolean
+    stripImages?: boolean;
+    stripStyles?: boolean;
+    preserveStructure?: boolean;
   } = {}
 ): {
-  optimizedHtml: string
+  optimizedHtml: string;
   metadata: {
-    originalSize: number
-    optimizedSize: number
-    imagesRemoved: number
-    stylesRemoved: boolean
-  }
+    originalSize: number;
+    optimizedSize: number;
+    imagesRemoved: number;
+    stylesRemoved: boolean;
+  };
 } {
-  const {
-    stripImages = true,
-    stripStyles = true,
-    preserveStructure = true
-  } = options
-  
-  const originalSize = new Blob([html]).size
-  let optimizedHtml = html
-  let imagesRemoved = 0
-  
+  const { stripImages = true, stripStyles = true, preserveStructure = true } = options;
+
+  const originalSize = new Blob([html]).size;
+  let optimizedHtml = html;
+  let imagesRemoved = 0;
+
   // Strip base64 images
   if (stripImages) {
-    const images = extractBase64Images(html)
-    imagesRemoved = images.length
-    optimizedHtml = stripBase64Images(optimizedHtml)
+    const images = extractBase64Images(html);
+    imagesRemoved = images.length;
+    optimizedHtml = stripBase64Images(optimizedHtml);
   }
-  
+
   // Strip inline styles
   if (stripStyles) {
-    optimizedHtml = stripInlineStyles(optimizedHtml)
+    optimizedHtml = stripInlineStyles(optimizedHtml);
   }
-  
+
   // Remove excessive whitespace
   if (!preserveStructure) {
-    optimizedHtml = optimizedHtml
-      .replace(/\s+/g, ' ')
-      .replace(/>\s+</g, '><')
-      .trim()
+    optimizedHtml = optimizedHtml.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
   }
-  
-  const optimizedSize = new Blob([optimizedHtml]).size
-  
+
+  const optimizedSize = new Blob([optimizedHtml]).size;
+
   return {
     optimizedHtml,
     metadata: {
       originalSize,
       optimizedSize,
       imagesRemoved,
-      stylesRemoved: stripStyles
-    }
-  }
+      stylesRemoved: stripStyles,
+    },
+  };
 }
 
 /**
  * Check if HTML contains heavy content
  */
 export function hasHeavyContent(html: string): {
-  hasBase64Images: boolean
-  hasInlineStyles: boolean
-  estimatedSize: number
+  hasBase64Images: boolean;
+  hasInlineStyles: boolean;
+  estimatedSize: number;
 } {
-  const hasBase64Images = /data:image\/[^;]+;base64,/i.test(html)
-  const hasInlineStyles = /\sstyle\s*=\s*["']/i.test(html)
-  const estimatedSize = new Blob([html]).size
-  
+  const hasBase64Images = /data:image\/[^;]+;base64,/i.test(html);
+  const hasInlineStyles = /\sstyle\s*=\s*["']/i.test(html);
+  const estimatedSize = new Blob([html]).size;
+
   return {
     hasBase64Images,
     hasInlineStyles,
-    estimatedSize
-  }
+    estimatedSize,
+  };
 }
 
 /**
  * Get size reduction percentage
  */
 export function calculateSizeReduction(originalSize: number, optimizedSize: number): number {
-  if (originalSize === 0) return 0
-  return Math.round(((originalSize - optimizedSize) / originalSize) * 100)
-} 
+  if (originalSize === 0) return 0;
+  return Math.round(((originalSize - optimizedSize) / originalSize) * 100);
+}
+
+/**
+ * Sanitize HTML to force HTTPS for all external resources
+ * Replaces src="http://... and href="http://... with https
+ */
+export function sanitizeHtmlForHttps(html: string): string {
+  return html
+    .replace(/src="http:\/\//g, 'src="https://')
+    .replace(/href="http:\/\//g, 'href="https://');
+}

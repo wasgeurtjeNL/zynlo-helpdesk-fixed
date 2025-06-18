@@ -1,379 +1,468 @@
-import { Router, Request, Response } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import express from 'express';
 import { z } from 'zod';
-import crypto from 'crypto';
-import { threadReconstructor } from '../../src/services/email/thread-reconstructor';
-import { attachmentHandler } from '../../src/services/email/attachment-handler';
-import { spamDetector } from '../../src/services/spam/simple-spam-detector';
+import { createClient } from '@supabase/supabase-js';
+import { simpleSpamDetector } from '../../src/services/spam/simple-spam-detector';
 
-const router = Router();
+const router = express.Router();
 
-// Initialize Supabase client
-// Use NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as these are likely in .env.local
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
-);
-
-// Email webhook payload schema
-const EmailWebhookSchema = z.object({
-  messageId: z.string(),
-  from: z.object({
-    email: z.string().email(),
-    name: z.string().optional(),
-  }),
-  to: z.array(
-    z.object({
-      email: z.string().email(),
+// Enhanced email payload schema with better validation
+const EmailWebhookSchema = z
+  .object({
+    // Core email fields
+    subject: z.string().min(1, 'Subject is required'),
+    from: z.object({
+      email: z.string().email('Valid email required'),
       name: z.string().optional(),
-    })
-  ),
-  cc: z
-    .array(
-      z.object({
-        email: z.string().email(),
-        name: z.string().optional(),
-      })
-    )
-    .optional(),
-  subject: z.string(),
-  text: z.string().optional(),
-  html: z.string().optional(),
-  attachments: z
-    .array(
-      z.object({
-        filename: z.string(),
-        contentType: z.string(),
-        size: z.number(),
-        url: z.string().optional(),
-        content: z.string().optional(),
-      })
-    )
-    .optional(),
-  headers: z.record(z.string()).optional(),
-  inReplyTo: z.string().optional(),
-  references: z.array(z.string()).optional(),
-  receivedAt: z.string().datetime().optional(),
-});
+    }),
+    to: z
+      .array(
+        z.object({
+          email: z.string().email(),
+          name: z.string().optional(),
+        })
+      )
+      .min(1, 'At least one recipient required'),
 
-type EmailWebhookPayload = z.infer<typeof EmailWebhookSchema>;
+    // Content fields - at least one must be present
+    text: z.string().optional(),
+    html: z.string().optional(),
 
-// Helper function to find or create customer
-async function findOrCreateCustomer(email: string, name?: string) {
-  // Check if customer exists
-  const { data: existingCustomer } = await supabase
+    // Optional fields
+    cc: z
+      .array(
+        z.object({
+          email: z.string().email(),
+          name: z.string().optional(),
+        })
+      )
+      .optional(),
+    bcc: z
+      .array(
+        z.object({
+          email: z.string().email(),
+          name: z.string().optional(),
+        })
+      )
+      .optional(),
+
+    // Metadata
+    messageId: z.string().optional(),
+    inReplyTo: z.string().optional(),
+    references: z.string().optional(),
+    date: z.string().optional(),
+    headers: z.record(z.string()).optional(),
+    attachments: z
+      .array(
+        z.object({
+          filename: z.string(),
+          contentType: z.string(),
+          size: z.number(),
+          content: z.string().optional(), // base64 encoded
+        })
+      )
+      .optional(),
+  })
+  .refine((data) => data.text || data.html, {
+    message: 'Either text or html content must be provided',
+  });
+
+type EmailPayload = z.infer<typeof EmailWebhookSchema>;
+
+/**
+ * Extract and clean email content for display
+ */
+function processEmailContent(payload: EmailPayload): {
+  content: string;
+  contentType: string;
+  cleanedText: string;
+} {
+  const hasHtml = payload.html && payload.html.trim().length > 0;
+  const hasText = payload.text && payload.text.trim().length > 0;
+
+  if (hasHtml) {
+    // Use HTML as primary content, create cleaned text version
+    const cleanedText = cleanEmailContent(payload.html!, true);
+    return {
+      content: payload.html!,
+      contentType: 'text/html',
+      cleanedText: cleanedText,
+    };
+  } else if (hasText) {
+    // Use text as primary content
+    const cleanedText = cleanEmailContent(payload.text!, false);
+    return {
+      content: cleanedText,
+      contentType: 'text/plain',
+      cleanedText: cleanedText,
+    };
+  } else {
+    // Fallback - should not happen due to schema validation
+    return {
+      content: 'No content available',
+      contentType: 'text/plain',
+      cleanedText: 'No content available',
+    };
+  }
+}
+
+/**
+ * Clean email content while preserving structure
+ */
+function cleanEmailContent(content: string, isHtml: boolean): string {
+  if (!content || content.trim().length === 0) return '';
+
+  let cleaned = content;
+
+  if (isHtml) {
+    // For HTML: convert to text while preserving structure
+    cleaned = cleaned
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<div[^>]*>/gi, '')
+      .replace(/<\/tr>/gi, '\n')
+      .replace(/<\/td>/gi, ' ')
+      .replace(/<[^>]*>/g, '') // Remove all HTML tags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
+  // Normalize line endings
+  cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Remove quoted replies (common patterns)
+  const quotePatterns = [
+    /\n\s*Op\s+.+?\s+schreef\s+.+?:/i, // Dutch
+    /\n\s*On\s+.+?\s+wrote:/i, // English
+    /\n\s*Van:\s*.+/i, // Dutch "From:"
+    /\n\s*From:\s*.+/i, // English "From:"
+    /\n\s*-----+.*?-----+/i, // Separator lines
+  ];
+
+  for (const pattern of quotePatterns) {
+    const match = cleaned.match(pattern);
+    if (match && match.index) {
+      cleaned = cleaned.substring(0, match.index).trim();
+      break;
+    }
+  }
+
+  // Clean up excessive whitespace
+  cleaned = cleaned
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+    .replace(/[ \t]+\n/g, '\n') // Remove trailing spaces
+    .replace(/\n[ \t]+/g, '\n') // Remove leading spaces
+    .trim();
+
+  return cleaned;
+}
+
+/**
+ * Find or create customer based on email
+ */
+async function findOrCreateCustomer(supabase: any, email: string, name?: string) {
+  console.log(`[Customer] Looking for customer with email: ${email}`);
+
+  // Try to find existing customer
+  const { data: existingCustomer, error: findError } = await supabase
     .from('customers')
-    .select('id')
+    .select('*')
     .eq('email', email)
     .single();
 
+  if (findError && findError.code !== 'PGRST116') {
+    console.error('[Customer] Error finding customer:', findError);
+    throw new Error(`Database error: ${findError.message}`);
+  }
+
   if (existingCustomer) {
-    return existingCustomer.id;
+    console.log(`[Customer] Found existing customer: ${existingCustomer.id}`);
+    return existingCustomer;
   }
 
   // Create new customer
-  const { data: newCustomer, error } = await supabase
+  console.log(`[Customer] Creating new customer for: ${email}`);
+  const { data: newCustomer, error: createError } = await supabase
     .from('customers')
     .insert({
-      email,
-      name: name || email.split('@')[0],
+      email: email,
+      name: name || null,
+      external_id: email, // Use email as external_id for email customers
     })
-    .select('id')
+    .select()
     .single();
 
-  if (error) {
-    throw new Error(`Failed to create customer: ${error.message}`);
+  if (createError) {
+    console.error('[Customer] Error creating customer:', createError);
+    throw new Error(`Failed to create customer: ${createError.message}`);
   }
 
-  return newCustomer.id;
+  console.log(`[Customer] Created new customer: ${newCustomer.id}`);
+  return newCustomer;
 }
 
-// Helper function to find email channel
-async function findEmailChannel() {
-  const { data: channel, error } = await supabase
-    .from('channels')
-    .select('id')
-    .eq('type', 'email')
-    .eq('is_active', true)
-    .single();
+/**
+ * Find existing ticket or create new one
+ */
+async function findOrCreateTicket(
+  supabase: any,
+  payload: EmailPayload,
+  customer: any,
+  processedContent: any
+) {
+  const subject = payload.subject.trim();
+  console.log(`[Ticket] Processing ticket for subject: ${subject}`);
 
-  if (error || !channel) {
-    throw new Error('No active email channel found');
-  }
+  // Check if this is a reply (has inReplyTo or references)
+  if (payload.inReplyTo || payload.references) {
+    console.log('[Ticket] This appears to be a reply, looking for existing ticket');
 
-  return channel.id;
-}
-
-// Process email webhook
-router.post('/email', async (req: Request, res: Response) => {
-  console.log('Email webhook received:', req.body);
-  console.log('📧 Email content details:', {
-    hasText: !!req.body.text,
-    textLength: req.body.text?.length,
-    textPreview: req.body.text?.substring(0, 100),
-    hasHtml: !!req.body.html,
-    htmlLength: req.body.html?.length,
-    subject: req.body.subject,
-    from: req.body.from,
-  });
-
-  try {
-    // Log the webhook receipt
-    await supabase.from('webhook_logs').insert({
-      channel_type: 'email',
-      payload: req.body,
-      headers: req.headers as any,
-    });
-
-    // Validate webhook signature if configured
-    const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const signature = req.headers['x-webhook-signature'] as string;
-      if (!signature) {
-        return res.status(401).json({ error: 'Missing webhook signature' });
-      }
-
-      const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(JSON.stringify(req.body))
-        .digest('hex');
-
-      if (signature !== expectedSignature) {
-        return res.status(401).json({ error: 'Invalid webhook signature' });
-      }
-    }
-
-    // Validate payload
-    const payload = EmailWebhookSchema.parse(req.body);
-
-    // Check for spam FIRST before creating anything
-    console.log('Checking email for spam...');
-    const spamCheck = await spamDetector.checkSpam({
-      content: payload.text || '',
-      subject: payload.subject,
-      from: payload.from.email,
-      html: payload.html,
-    });
-
-    console.log('Spam check result:', spamCheck);
-
-    // Find or create customer
-    const customerId = await findOrCreateCustomer(payload.from.email, payload.from.name);
-
-    // Find email channel
-    const channelId = await findEmailChannel();
-
-    // Use thread reconstruction to find existing thread
-    const existingThread = await threadReconstructor.findExistingThread(
-      payload.messageId,
-      payload.inReplyTo,
-      payload.references,
-      payload.subject,
-      payload.from.email
-    );
-
-    let conversationId: string;
-    let ticketRecord: any;
-
-    if (!existingThread) {
-      // Create new ticket - mark as spam if detected
-      const { data: ticket, error: ticketError } = await supabase
-        .from('tickets')
-        .insert({
-          subject: payload.subject,
-          status: spamCheck.isSpam ? 'closed' : 'new',
-          priority: spamCheck.isSpam ? 'low' : 'normal',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_spam: spamCheck.isSpam,
-          marked_as_spam_at: spamCheck.isSpam ? new Date().toISOString() : null,
-          closed_at: spamCheck.isSpam ? new Date().toISOString() : null,
-        })
-        .select()
-        .single();
-
-      if (ticketError) {
-        throw new Error(`Failed to create ticket: ${ticketError.message}`);
-      }
-
-      console.log(
-        `Created ${spamCheck.isSpam ? 'SPAM' : 'new'} ticket #${ticket.number} with ID ${ticket.id}`
-      );
-
-      // Create conversation
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .insert({
-          ticket_id: ticket.id,
-          channel: 'email',
-          customer_id: customerId,
-          metadata: {
-            emailThreadId: payload.messageId,
-            references: payload.references || [],
-          },
-        })
-        .select()
-        .single();
-
-      if (convError) {
-        throw new Error(`Failed to create conversation: ${convError.message}`);
-      }
-
-      conversationId = conversation.id;
-      ticketRecord = ticket;
-    } else {
-      // Existing thread found
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('id, ticket_id')
-        .eq('ticket_id', existingThread.ticketId)
-        .single();
-
-      if (!conversation) {
-        throw new Error('Conversation not found for existing thread');
-      }
-
-      conversationId = conversation.id;
-
-      // Get ticket details
-      const { data: ticket } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', existingThread.ticketId)
-        .single();
-
-      ticketRecord = ticket;
-
-      // Reopen ticket if it was closed (unless it's spam)
-      if (ticket?.status === 'closed' && !ticket?.is_spam) {
-        await supabase
-          .from('tickets')
-          .update({
-            status: 'open',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingThread.ticketId);
-      }
-    }
-
-    // Create message
-    const { data: message, error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        content: payload.html || payload.text || '',
-        content_type: payload.html ? 'html' : 'text',
-        sender_type: 'customer',
-        sender_id: customerId,
-        metadata: {
-          messageId: payload.messageId,
-          from: payload.from,
-          to: payload.to,
-          cc: payload.cc,
-          subject: payload.subject,
-          headers: payload.headers,
-          inReplyTo: payload.inReplyTo,
-          references: payload.references,
-          originalText: payload.text,
-          originalHtml: payload.html,
-        },
-        // Don't include attachments here yet, they'll be processed separately
-        attachments: [],
-      })
-      .select()
+    // Try to find existing ticket by message references
+    const { data: existingTicket, error: findError } = await supabase
+      .from('tickets')
+      .select('*, conversations!inner(*)')
+      .eq('customer_id', customer.id)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
-    if (messageError) {
-      throw new Error(`Failed to create message: ${messageError.message}`);
+    if (!findError && existingTicket) {
+      console.log(`[Ticket] Found existing open ticket: #${existingTicket.number}`);
+      return existingTicket;
+    }
+  }
+
+  // Check for spam before creating ticket
+  const isSpam = simpleSpamDetector(processedContent.cleanedText, payload.from.email);
+  if (isSpam) {
+    console.log('[Spam] Email detected as spam, marking accordingly');
+  }
+
+  // Create new ticket
+  console.log('[Ticket] Creating new ticket');
+  const { data: newTicket, error: createError } = await supabase
+    .from('tickets')
+    .insert({
+      subject: subject,
+      customer_id: customer.id,
+      status: 'new',
+      priority: 'normal',
+      is_spam: isSpam,
+      version: 1,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error('[Ticket] Error creating ticket:', createError);
+    throw new Error(`Failed to create ticket: ${createError.message}`);
+  }
+
+  console.log(`[Ticket] Created new ticket: #${newTicket.number} (${newTicket.id})`);
+  return newTicket;
+}
+
+/**
+ * Create or find conversation for ticket
+ */
+async function findOrCreateConversation(supabase: any, ticket: any) {
+  console.log(`[Conversation] Looking for conversation for ticket: ${ticket.id}`);
+
+  // Try to find existing conversation
+  const { data: existingConversation, error: findError } = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('ticket_id', ticket.id)
+    .single();
+
+  if (!findError && existingConversation) {
+    console.log(`[Conversation] Found existing conversation: ${existingConversation.id}`);
+    return existingConversation;
+  }
+
+  // Create new conversation
+  console.log('[Conversation] Creating new conversation');
+  const { data: newConversation, error: createError } = await supabase
+    .from('conversations')
+    .insert({
+      ticket_id: ticket.id,
+      channel: 'email',
+      external_id: `email-${ticket.id}`,
+      metadata: {
+        channel_type: 'email',
+        created_via: 'webhook',
+      },
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error('[Conversation] Error creating conversation:', createError);
+    throw new Error(`Failed to create conversation: ${createError.message}`);
+  }
+
+  console.log(`[Conversation] Created new conversation: ${newConversation.id}`);
+  return newConversation;
+}
+
+/**
+ * Create message in conversation
+ */
+async function createMessage(
+  supabase: any,
+  conversation: any,
+  payload: EmailPayload,
+  processedContent: any
+) {
+  console.log(`[Message] Creating message for conversation: ${conversation.id}`);
+
+  const messageData = {
+    conversation_id: conversation.id,
+    content: processedContent.content,
+    content_type: processedContent.contentType,
+    sender_type: 'customer',
+    sender_id: payload.from.email,
+    is_internal: false,
+    metadata: {
+      from: payload.from,
+      to: payload.to,
+      cc: payload.cc || [],
+      bcc: payload.bcc || [],
+      subject: payload.subject,
+      messageId: payload.messageId,
+      inReplyTo: payload.inReplyTo,
+      references: payload.references,
+      headers: payload.headers || {},
+      originalHtml: payload.html, // Store original HTML for fallback
+      cleanedText: processedContent.cleanedText,
+      hasAttachments: (payload.attachments?.length || 0) > 0,
+    },
+  };
+
+  const { data: message, error: createError } = await supabase
+    .from('messages')
+    .insert(messageData)
+    .select()
+    .single();
+
+  if (createError) {
+    console.error('[Message] Error creating message:', createError);
+    throw new Error(`Failed to create message: ${createError.message}`);
+  }
+
+  console.log(
+    `[Message] Created message: ${message.id} (${processedContent.content.length} chars)`
+  );
+  return message;
+}
+
+/**
+ * Main email webhook handler
+ */
+router.post('/email', async (req, res) => {
+  const startTime = Date.now();
+  console.log('\n🔄 EMAIL WEBHOOK TRIGGERED - Enhanced Version');
+  console.log('Timestamp:', new Date().toISOString());
+
+  try {
+    // Initialize Supabase client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
     }
 
-    // Log spam detection result
-    await spamDetector.logDetection({
-      ticketId: ticketRecord.id,
-      messageId: message.id,
-      emailFrom: payload.from.email,
-      subject: payload.subject,
-      spamScore: spamCheck.score,
-      isSpam: spamCheck.isSpam,
-      report: spamCheck.report,
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Log incoming webhook for debugging
+    await supabase.from('webhook_logs').insert({
+      channel: 'email',
+      payload: req.body,
+      headers: req.headers,
+      processed: false,
     });
 
-    // Process attachments with the attachment handler
-    if (payload.attachments && payload.attachments.length > 0) {
-      // Convert webhook attachments to EmailMessage format
-      const emailMessage = {
-        uid: 0, // Not used for webhook processing
-        messageId: payload.messageId,
-        date: new Date(payload.receivedAt || new Date().toISOString()),
-        from: [{ address: payload.from.email, name: payload.from.name }],
-        to: payload.to.map((t) => ({ address: t.email, name: t.name })),
-        cc: payload.cc?.map((c) => ({ address: c.email, name: c.name })),
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-        attachments: payload.attachments.map((att) => ({
-          filename: att.filename,
-          contentType: att.contentType,
-          size: att.size,
-          content: att.content ? Buffer.from(att.content, 'base64') : undefined,
-        })),
-        headers: new Map(Object.entries(payload.headers || {})),
-      };
+    // Validate payload
+    console.log('[Validation] Validating email payload...');
+    const payload = EmailWebhookSchema.parse(req.body);
+    console.log(`[Validation] ✅ Valid payload from: ${payload.from.email}`);
+    console.log(`[Validation] Subject: ${payload.subject}`);
+    console.log(`[Validation] Has HTML: ${!!payload.html}`);
+    console.log(`[Validation] Has Text: ${!!payload.text}`);
 
-      try {
-        const uploadedAttachments = await attachmentHandler.processEmailAttachments(
-          emailMessage as any,
-          ticketRecord.id,
-          message.id
-        );
+    // Process email content
+    console.log('[Content] Processing email content...');
+    const processedContent = processEmailContent(payload);
+    console.log(`[Content] ✅ Content processed (${processedContent.contentType})`);
+    console.log(`[Content] Content length: ${processedContent.content.length} chars`);
+    console.log(`[Content] Cleaned text length: ${processedContent.cleanedText.length} chars`);
 
-        console.log(`Uploaded ${uploadedAttachments.length} attachments for message ${message.id}`);
-      } catch (error) {
-        console.error('Failed to process attachments:', error);
-        // Don't fail the webhook, just log the error
-      }
-    }
+    // Find or create customer
+    const customer = await findOrCreateCustomer(supabase, payload.from.email, payload.from.name);
 
-    // Send success response
+    // Find or create ticket
+    const ticket = await findOrCreateTicket(supabase, payload, customer, processedContent);
+
+    // Find or create conversation
+    const conversation = await findOrCreateConversation(supabase, ticket);
+
+    // Create message
+    const message = await createMessage(supabase, conversation, payload, processedContent);
+
+    // Update webhook log as processed
+    await supabase
+      .from('webhook_logs')
+      .update({ processed: true })
+      .eq('channel', 'email')
+      .eq('created_at', new Date().toISOString().split('T')[0]); // Today's logs
+
+    const processingTime = Date.now() - startTime;
+    console.log(`\n✅ EMAIL PROCESSED SUCCESSFULLY`);
+    console.log(`Processing time: ${processingTime}ms`);
+    console.log(`Ticket: #${ticket.number}`);
+    console.log(`Customer: ${customer.email}`);
+    console.log(`Message: ${message.id}`);
+
     res.status(200).json({
       success: true,
       data: {
-        ticketId: ticketRecord.id,
-        ticketNumber: ticketRecord.number,
-        conversationId,
+        ticketNumber: ticket.number,
+        ticketId: ticket.id,
+        customerId: customer.id,
+        conversationId: conversation.id,
         messageId: message.id,
-        spamDetected: spamCheck.isSpam,
-        spamScore: spamCheck.score,
+        processingTime: processingTime,
       },
     });
-    return;
   } catch (error) {
-    console.error('Webhook error:', error);
+    const processingTime = Date.now() - startTime;
+    console.error('\n❌ EMAIL WEBHOOK ERROR');
+    console.error('Processing time:', processingTime + 'ms');
+    console.error('Error:', error);
 
-    // Log error to webhook_logs
-    await supabase.from('webhook_logs').insert({
-      channel_type: 'email',
-      payload: req.body,
-      headers: req.headers as any,
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-
-    // Always return 200 to prevent webhook retries
-    res.status(200).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return;
+    // Log error but don't crash
+    if (error instanceof z.ZodError) {
+      console.error('Validation errors:', error.errors);
+      res.status(400).json({
+        success: false,
+        error: 'Invalid payload',
+        details: error.errors,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
-});
-
-// Health check endpoint
-router.get('/email/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-  });
 });
 
 export default router;

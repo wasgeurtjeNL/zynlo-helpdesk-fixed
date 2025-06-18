@@ -71,18 +71,775 @@ Een modern ticketsysteem geïnspireerd door Trengo, gebouwd met cutting-edge tec
 
 ```
 zynlo-helpdesk/
-├── apps/
-│   ├── dashboard/          # Next.js frontend applicatie
-│   └── api-server/         # Express webhook server
-├── packages/
-│   ├── ui/                 # Gedeelde UI componenten
-│   ├── supabase/          # Database types & hooks
-│   └── utils/             # Gedeelde utilities
-├── supabase/
-│   ├── migrations/        # Database migraties
-│   └── functions/         # Edge Functions
-└── docs/                  # Documentatie
+├── 📁 .cursor/                     # Cursor IDE configuratie
+│   └── mcp.json                    # MCP (Model Context Protocol) configuratie
+├── 📁 .git/                       # Git repository data
+├── 📁 .husky/                     # Git hooks voor code quality
+├── 📁 .roo/                       # Roo AI configuratie
+├── 📁 .turbo/                     # Turborepo cache
+├── 📁 .vercel/                    # Vercel deployment configuratie
+├── 📁 .vscode/                    # VS Code workspace instellingen
+│
+├── 📁 apps/                       # Applicaties
+│   ├── 📁 dashboard/              # 🎯 Next.js Frontend Dashboard
+│   │   ├── 📁 .next/              # Next.js build output
+│   │   ├── 📁 .turbo/             # Turborepo cache voor dashboard
+│   │   ├── 📁 .vercel/            # Vercel deployment voor dashboard
+│   │   ├── 📁 app/                # Next.js App Router
+│   │   │   ├── 📁 (auth)/         # Auth route groep
+│   │   │   ├── 📁 api/            # API routes
+│   │   │   ├── 📁 dashboard/      # Dashboard paginas
+│   │   │   ├── 📁 inbox/          # Inbox/ticket management
+│   │   │   ├── 📁 settings/       # Instellingen paginas
+│   │   │   ├── globals.css        # Globale CSS
+│   │   │   ├── layout.tsx         # Root layout
+│   │   │   └── page.tsx           # Homepage
+│   │   ├── 📁 components/         # React componenten
+│   │   │   ├── 📁 ui/             # Base UI componenten
+│   │   │   ├── 📁 forms/          # Form componenten
+│   │   │   ├── 📁 layout/         # Layout componenten
+│   │   │   └── message-content.tsx # Message rendering (met HTTPS sanitizer)
+│   │   ├── 📁 hooks/              # Custom React hooks
+│   │   ├── 📁 lib/                # Utility libraries
+│   │   │   ├── html-optimizer.ts  # 🔧 HTML sanitizer voor HTTPS conversie
+│   │   │   ├── supabase.ts        # Supabase client configuratie
+│   │   │   └── utils.ts           # Algemene utilities
+│   │   ├── 📁 public/             # Statische bestanden
+│   │   ├── 📁 scripts/            # Build en deployment scripts
+│   │   ├── 📁 services/           # API service layers
+│   │   ├── 📁 types/              # TypeScript type definities
+│   │   ├── middleware.ts          # Next.js middleware
+│   │   ├── next.config.js         # Next.js configuratie
+│   │   ├── package.json           # Dependencies voor dashboard
+│   │   ├── tailwind.config.ts     # Tailwind CSS configuratie
+│   │   └── tsconfig.json          # TypeScript configuratie
+│   │
+│   └── 📁 api-server/             # 🚀 Express.js Backend API
+│       ├── 📁 .turbo/             # Turborepo cache voor API
+│       ├── 📁 dist/               # Compiled JavaScript output
+│       ├── 📁 node_modules/       # Node.js dependencies
+│       ├── 📁 routes/             # Express route handlers
+│       ├── 📁 services/           # Business logic services
+│       ├── 📁 src/                # TypeScript source code
+│       ├── 📁 types/              # TypeScript type definities
+│       ├── 📁 utils/              # Utility functies
+│       ├── package.json           # Dependencies voor API server
+│       ├── tsconfig.json          # TypeScript configuratie
+│       └── README.md              # API server documentatie
+│
+├── 📁 packages/                   # 📦 Gedeelde packages (monorepo)
+│   ├── 📁 supabase/              # Supabase types en hooks
+│   ├── 📁 ui/                    # Gedeelde UI componenten
+│   └── 📁 utils/                 # Gedeelde utility functies
+│
+├── 📁 supabase/                   # 🗄️ Supabase configuratie
+│   ├── 📁 functions/             # Edge Functions (serverless)
+│   ├── 📁 migrations/            # Database schema migraties
+│   └── config.toml               # Supabase project configuratie
+│
+├── 📁 docs/                       # 📚 Project documentatie
+├── 📁 hooks/                      # Git hooks
+├── 📁 scripts/                    # Project-wide scripts
+├── 📁 tasks/                      # Task definitie bestanden
+│
+├── 📄 Configuratie bestanden:
+├── .cursorrules                   # Cursor AI regels
+├── .eslintrc.json                # ESLint configuratie
+├── .gitignore                     # Git ignore regels
+├── .npmrc                         # NPM configuratie
+├── .prettierrc                    # Prettier code formatting
+├── .roomodes                      # Room modes configuratie
+├── .taskmasterconfig             # Taskmaster configuratie
+├── .windsurfrules                # Windsurf AI regels
+├── docker-compose.yml            # Docker services definitie
+├── package.json                  # Root package.json (workspace)
+├── pnpm-lock.yaml               # PNPM lockfile
+├── pnpm-workspace.yaml          # PNPM workspace configuratie
+├── tsconfig.json                # Root TypeScript configuratie
+├── turbo.json                   # Turborepo configuratie
+├── vercel.json                  # Vercel deployment configuratie
+│
+├── 📄 Deployment & Scripts:
+├── deploy-to-vercel.ps1         # PowerShell deployment script
+├── deploy-vercel.sh             # Bash deployment script
+├── test-gmail-sync.ps1          # Gmail sync test script
+│
+└── 📄 Documentatie:
+    ├── README.md                 # 📖 Hoofddocumentatie (dit bestand)
+    ├── CONSOLE_ERRORS_FIX.md    # Console errors troubleshooting
+    ├── EMAIL_SETUP_GUIDE.md     # Email setup instructies
+    ├── GMAIL_OAUTH_SETUP.md     # Gmail OAuth configuratie
+    ├── GMAIL_OAUTH_QUICK_START.md # Snelle Gmail setup
+    ├── GMAIL_OAUTH_PRODUCTION_SETUP.md # Productie Gmail setup
+    ├── MCP_SETUP_GUIDE.md       # MCP setup instructies
+    ├── MCP_WERKT_NIET_OPLOSSING.md # MCP troubleshooting
+    ├── OAUTH_SETUP_INSTRUCTIONS.md # OAuth setup instructies
+    ├── TASKS.md                 # Project taken overzicht
+    ├── email-management-features.md # Email management features
+    ├── fix-email-sync.md        # Email sync fixes
+    ├── fix-ticket-messages.md   # Ticket message fixes
+    ├── performance-optimization.md # Performance optimalisaties
+    └── project-completion.md    # Project voltooiing status
 ```
+
+### 🏗️ Architectuur Overzicht
+
+- **Frontend**: Next.js 14 met App Router, TypeScript, Tailwind CSS
+- **Backend**: Express.js API server + Supabase Edge Functions
+- **Database**: PostgreSQL via Supabase met Row Level Security
+- **Monorepo**: Turborepo voor efficiënte builds en caching
+- **Deployment**: Vercel voor frontend, Supabase voor backend
+- **Package Management**: pnpm workspaces voor dependency management
+
+## 🗄️ Database Structuur (Supabase)
+
+### 📊 Core Entiteiten
+
+#### 🎫 **Tickets** (tickets)
+
+**Functie**: Hoofdentiteit voor alle support tickets
+
+- `id` (uuid, PK): Unieke ticket identifier
+- `number` (int, unique): Ticket nummer voor gebruikers (#1001, #1002, etc.)
+- `subject` (text): Onderwerp van het ticket
+- `status` (enum): new, open, pending, resolved, closed
+- `priority` (enum): low, normal, high, urgent
+- `customer_id` (uuid, FK): Verwijzing naar klant
+- `assignee_id` (uuid, FK): Toegewezen agent
+- `team_id` (uuid, FK): Toegewezen team
+- `is_spam` (boolean): Spam detectie status
+- `version` (int): Optimistic locking voor concurrent editing
+
+#### 👥 **Customers** (customers)
+
+**Functie**: Klantgegevens en contactinformatie
+
+- `id` (uuid, PK): Unieke klant identifier
+- `email` (text, unique): Email adres van klant
+- `phone` (text, unique): Telefoonnummer
+- `name` (text): Volledige naam
+- `external_id` (text): Externe referentie ID
+- `metadata` (jsonb): Flexibele extra data
+
+#### 💬 **Messages** (messages)
+
+**Functie**: Alle berichten binnen conversations
+
+- `id` (uuid, PK): Unieke bericht identifier
+- `conversation_id` (uuid, FK): Gekoppelde conversatie
+- `content` (text): Bericht inhoud
+- `sender_type` (enum): customer, agent, system
+- `sender_id` (text): ID van afzender
+- `content_type` (text): text/plain, text/html, text/markdown
+- `is_internal` (boolean): Interne notitie of klant-zichtbaar
+- `attachments` (jsonb[]): Bijlagen metadata
+
+#### 🔄 **Conversations** (conversations)
+
+**Functie**: Groepeert messages per kanaal/thread
+
+- `id` (uuid, PK): Unieke conversatie identifier
+- `ticket_id` (uuid, FK): Gekoppeld ticket
+- `channel` (enum): email, whatsapp, chat, phone, api
+- `channel_id` (uuid, FK): Specifiek kanaal (bijv. Gmail account)
+- `external_id` (text): Externe thread ID
+- `metadata` (jsonb): Kanaal-specifieke data
+
+### 📡 Kanaal Management
+
+#### 📧 **Channels** (channels)
+
+**Functie**: Configuratie van communicatiekanalen
+
+- `id` (uuid, PK): Unieke kanaal identifier
+- `name` (text): Kanaal naam (bijv. "Support Gmail")
+- `type` (enum): email, whatsapp, chat, phone, api
+- `provider` (text): gmail, outlook, other
+- `email_address` (text): Email adres voor email kanalen
+- `is_active` (boolean): Kanaal status
+- `settings` (jsonb): Kanaal-specifieke instellingen
+- `last_sync` (timestamp): Laatste synchronisatie
+
+#### 🔐 **OAuth Tokens** (oauth_tokens)
+
+**Functie**: OAuth authenticatie voor externe services
+
+- `id` (uuid, PK): Unieke token identifier
+- `channel_id` (uuid, FK): Gekoppeld kanaal
+- `provider` (text): gmail, outlook, other
+- `access_token` (text): OAuth access token
+- `refresh_token` (text): OAuth refresh token
+- `expires_at` (timestamp): Token vervaldatum
+- `scope` (text): OAuth scope permissies
+
+### 👤 Gebruikers & Teams
+
+#### 🧑‍💼 **Users** (users)
+
+**Functie**: Agent/gebruiker accounts en profielen
+
+- `id` (uuid, PK): Unieke gebruiker identifier (sync met auth.users)
+- `email` (text): Email adres
+- `full_name` (text): Volledige naam
+- `role` (text): agent, admin, manager
+- `team_id` (uuid, FK): Toegewezen team
+- `organization_id` (uuid, FK): Organisatie membership
+- `is_active` (boolean): Account status
+
+#### 👥 **Teams** (teams)
+
+**Functie**: Team organisatie en instellingen
+
+- `id` (uuid, PK): Unieke team identifier
+- `name` (text): Team naam
+- `description` (text): Team beschrijving
+- `settings` (jsonb): Team-specifieke instellingen
+
+#### 🏢 **Organizations** (organizations)
+
+**Functie**: Multi-tenant organisatie structuur
+
+- `id` (uuid, PK): Unieke organisatie identifier
+- `name` (text): Organisatie naam
+
+#### 👥 **Team Members** (team_members)
+
+**Functie**: Many-to-many relatie tussen users en teams
+
+- `team_id` (uuid, FK): Team referentie
+- `user_id` (uuid, FK): Gebruiker referentie
+- `role` (text): member, leader
+
+### 🤖 AI & Automatisering
+
+#### 🔄 **Auto Reply Rules** (auto_reply_rules)
+
+**Functie**: Automatische antwoord regels en triggers
+
+- `id` (uuid, PK): Unieke regel identifier
+- `name` (text): Regel naam
+- `trigger_type` (text): first_message, keyword_match, out_of_hours
+- `is_active` (boolean): Regel status
+- `keywords` (text[]): Trigger keywords
+- `channel_types` (text[]): Actieve kanalen
+- `business_hours` (jsonb): Werkuren configuratie
+
+#### 📝 **Auto Reply Templates** (auto_reply_templates)
+
+**Functie**: Template content voor automatische antwoorden
+
+- `id` (uuid, PK): Unieke template identifier
+- `rule_id` (uuid, FK): Gekoppelde regel
+- `language` (text): Template taal (nl, en, etc.)
+- `subject_template` (text): Email onderwerp template
+- `content_template` (text): Bericht content template
+- `content_type` (text): text/plain, text/html
+
+#### 🎯 **Auto Reply Conditions** (auto_reply_conditions)
+
+**Functie**: Specifieke condities voor regel triggers
+
+- `rule_id` (uuid, FK): Gekoppelde regel
+- `field` (text): Veld om te checken
+- `operator` (text): equals, contains, starts_with, etc.
+- `value` (jsonb): Waarde om tegen te checken
+
+#### 📊 **Auto Reply Execution Logs** (auto_reply_execution_logs)
+
+**Functie**: Audit trail van uitgevoerde automatische antwoorden
+
+- `rule_id` (uuid, FK): Uitgevoerde regel
+- `ticket_id` (uuid, FK): Betreffende ticket
+- `conditions_met` (boolean): Of condities waren voldaan
+- `response_sent` (boolean): Of antwoord is verzonden
+- `execution_time_ms` (int): Uitvoeringstijd
+
+### 🧠 AI Features
+
+#### 🤖 **AI Usage** (ai_usage)
+
+**Functie**: Tracking van AI model gebruik per gebruiker
+
+- `user_id` (uuid, FK): Gebruiker die AI gebruikte
+- `ticket_id` (uuid, FK): Betreffende ticket
+- `prompt` (text): AI prompt
+- `response` (text): AI antwoord
+- `model_used` (text): Gebruikt AI model
+- `tokens_used` (int): Aantal gebruikte tokens
+- `cost_cents` (int): Kosten in centen
+
+#### 📈 **AI Usage Summary** (ai_usage_summary)
+
+**Functie**: Maandelijkse AI gebruik samenvatting
+
+- `user_id` (uuid, FK): Gebruiker
+- `month` (date): Maand van gebruik
+- `total_requests` (int): Totaal aantal requests
+- `total_tokens` (int): Totaal aantal tokens
+- `total_cost_cents` (int): Totale kosten
+
+#### ⚙️ **AI Settings** (ai_settings)
+
+**Functie**: Globale AI configuratie instellingen
+
+- `setting_key` (text, unique): Instelling naam
+- `setting_value` (jsonb): Instelling waarde
+- `updated_by` (uuid, FK): Laatst gewijzigd door
+
+### 🏷️ Labeling & Categorisatie
+
+#### 🏷️ **Labels** (labels)
+
+**Functie**: Flexibele ticket categorisatie
+
+- `id` (uuid, PK): Unieke label identifier
+- `name` (text): Label naam
+- `color` (text): Hex kleur code
+- `parent_id` (uuid, FK): Hiërarchische labels
+- `is_active` (boolean): Label status
+
+#### 🔗 **Ticket Labels** (ticket_labels)
+
+**Functie**: Many-to-many koppeling tussen tickets en labels
+
+- `ticket_id` (uuid, FK): Ticket referentie
+- `label_id` (uuid, FK): Label referentie
+
+### 📋 Taken & Workflow
+
+#### ✅ **Tasks** (tasks)
+
+**Functie**: Interne taken gekoppeld aan tickets
+
+- `id` (uuid, PK): Unieke taak identifier
+- `title` (text): Taak titel
+- `description` (text): Taak beschrijving
+- `status` (text): todo, in_progress, done, cancelled
+- `priority` (text): low, normal, high, urgent
+- `ticket_id` (uuid, FK): Gekoppeld ticket
+- `due_date` (timestamp): Deadline
+
+#### 👤 **Task Assignees** (task_assignees)
+
+**Functie**: Taak toewijzingen aan gebruikers
+
+- `task_id` (uuid, FK): Taak referentie
+- `user_id` (uuid, FK): Toegewezen gebruiker
+
+### 🔔 Notificaties & Communicatie
+
+#### 🔔 **Notifications** (notifications)
+
+**Functie**: In-app notificaties voor gebruikers
+
+- `user_id` (uuid, FK): Ontvanger
+- `ticket_id` (uuid, FK): Gerelateerd ticket
+- `type` (text): Notificatie type
+- `title` (text): Notificatie titel
+- `message` (text): Notificatie bericht
+- `is_read` (boolean): Gelezen status
+- `action_url` (text): Deep link naar relevante pagina
+
+#### 📧 **Email Templates** (email_templates)
+
+**Functie**: Herbruikbare email templates
+
+- `name` (text): Template naam
+- `subject` (text): Email onderwerp
+- `html_content` (text): HTML email content
+- `text_content` (text): Plain text versie
+- `variables` (jsonb): Template variabelen
+
+### 📊 Analytics & Logging
+
+#### 📈 **Activity Logs** (activity_logs)
+
+**Functie**: Audit trail van alle ticket wijzigingen
+
+- `ticket_id` (uuid, FK): Betreffende ticket
+- `user_id` (uuid, FK): Gebruiker die actie uitvoerde
+- `action_type` (text): Type actie (status_change, assignment, etc.)
+- `action_description` (text): Beschrijving van actie
+- `old_value` (text): Vorige waarde
+- `new_value` (text): Nieuwe waarde
+
+#### 🕒 **User Presence** (user_presence)
+
+**Functie**: Real-time gebruiker status tracking
+
+- `user_id` (uuid, FK): Gebruiker
+- `status` (text): online, offline, away
+- `current_page` (text): Huidige pagina
+- `current_ticket_id` (uuid, FK): Huidig bekeken ticket
+- `last_seen` (timestamp): Laatst actief
+
+#### 📊 **System Logs** (system_logs)
+
+**Functie**: Algemene systeem logging
+
+- `level` (text): info, warning, error
+- `message` (text): Log bericht
+- `metadata` (jsonb): Extra context data
+
+### 🛡️ Spam & Security
+
+#### 🛡️ **Spam Detection Logs** (spam_detection_logs)
+
+**Functie**: Spam detectie resultaten en audit
+
+- `ticket_id` (uuid, FK): Betreffende ticket
+- `email_from` (text): Afzender email
+- `spam_score` (numeric): Spam score (0-1)
+- `is_spam` (boolean): Spam classificatie
+- `false_positive` (boolean): Handmatige correctie
+
+#### 🚫 **Spam Filters** (spam_filters)
+
+**Functie**: Configureerbare spam filter regels
+
+- `rule_type` (text): email, domain, keyword, pattern
+- `value` (text): Filter waarde
+- `is_active` (boolean): Filter status
+
+### 🔐 Authenticatie & Sessies
+
+#### 🔐 **Login Sessions** (login_sessions)
+
+**Functie**: Gebruiker login tracking en security
+
+- `user_id` (uuid, FK): Ingelogde gebruiker
+- `ip_address` (inet): IP adres
+- `user_agent` (text): Browser informatie
+- `success` (boolean): Login succesvol
+- `country` (text): Land van login
+- `device_type` (text): Apparaat type
+
+### 📚 Overige Functies
+
+#### 💾 **Saved Views** (saved_views)
+
+**Functie**: Opgeslagen ticket filters en weergaven
+
+- `name` (text): Weergave naam
+- `user_id` (uuid, FK): Eigenaar (of null voor team)
+- `filters` (jsonb): Filter configuratie
+- `sort_order` (jsonb): Sorteer instellingen
+- `columns` (jsonb): Zichtbare kolommen
+
+#### 💬 **Message Drafts** (message_drafts)
+
+**Functie**: Opgeslagen concept berichten
+
+- `ticket_id` (uuid, FK): Betreffende ticket
+- `user_id` (uuid, FK): Auteur van concept
+- `content` (text): Concept inhoud
+- `is_internal` (boolean): Interne notitie of klant bericht
+
+#### 🔄 **Webhook Logs** (webhook_logs)
+
+**Functie**: Inkomende webhook data logging
+
+- `channel` (text): Webhook bron kanaal
+- `payload` (jsonb): Webhook data
+- `processed` (boolean): Verwerkings status
+- `error` (text): Eventuele foutmelding
+
+### 🔗 Database Relaties
+
+**Belangrijkste relaties:**
+
+- `tickets` ↔ `customers` (Many-to-One)
+- `tickets` ↔ `conversations` (One-to-Many)
+- `conversations` ↔ `messages` (One-to-Many)
+- `tickets` ↔ `users` (assignee, Many-to-One)
+- `tickets` ↔ `teams` (Many-to-One)
+- `tickets` ↔ `labels` (Many-to-Many via `ticket_labels`)
+- `channels` ↔ `oauth_tokens` (One-to-Many)
+- `auto_reply_rules` ↔ `auto_reply_templates` (One-to-Many)
+- `teams` ↔ `users` (Many-to-Many via `team_members`)
+
+### 📊 Database Entity Relationship Diagram
+
+Het volgende diagram toont de belangrijkste database entiteiten en hun relaties:
+
+```mermaid
+erDiagram
+    TICKETS {
+        uuid id PK
+        int number UK
+        text subject
+        text status
+        text priority
+        uuid customer_id FK
+        uuid assignee_id FK
+        uuid team_id FK
+        boolean is_spam
+        int version
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CUSTOMERS {
+        uuid id PK
+        text email UK
+        text phone UK
+        text name
+        text external_id
+        jsonb metadata
+        timestamp created_at
+    }
+
+    CONVERSATIONS {
+        uuid id PK
+        uuid ticket_id FK
+        text channel
+        uuid channel_id FK
+        text external_id
+        jsonb metadata
+        timestamp created_at
+    }
+
+    MESSAGES {
+        uuid id PK
+        uuid conversation_id FK
+        text content
+        text sender_type
+        text sender_id
+        text content_type
+        boolean is_internal
+        jsonb attachments
+        timestamp created_at
+    }
+
+    CHANNELS {
+        uuid id PK
+        text name
+        text type
+        text provider
+        text email_address
+        boolean is_active
+        jsonb settings
+        timestamp last_sync
+    }
+
+    USERS {
+        uuid id PK
+        text email
+        text full_name
+        text role
+        uuid team_id FK
+        uuid organization_id FK
+        boolean is_active
+    }
+
+    TEAMS {
+        uuid id PK
+        text name
+        text description
+        jsonb settings
+    }
+
+    ORGANIZATIONS {
+        uuid id PK
+        text name
+    }
+
+    AUTO_REPLY_RULES {
+        uuid id PK
+        text name
+        text trigger_type
+        boolean is_active
+        text keywords
+        text channel_types
+        jsonb business_hours
+    }
+
+    AUTO_REPLY_TEMPLATES {
+        uuid id PK
+        uuid rule_id FK
+        text language
+        text subject_template
+        text content_template
+        text content_type
+    }
+
+    LABELS {
+        uuid id PK
+        text name
+        text color
+        uuid parent_id FK
+        boolean is_active
+    }
+
+    TICKET_LABELS {
+        uuid ticket_id FK
+        uuid label_id FK
+    }
+
+    AI_USAGE {
+        uuid user_id FK
+        uuid ticket_id FK
+        text prompt
+        text response
+        text model_used
+        int tokens_used
+        int cost_cents
+        timestamp created_at
+    }
+
+    OAUTH_TOKENS {
+        uuid id PK
+        uuid channel_id FK
+        text provider
+        text access_token
+        text refresh_token
+        timestamp expires_at
+        text scope
+    }
+
+    %% Core relationships
+    TICKETS ||--o{ CONVERSATIONS : "has"
+    CONVERSATIONS ||--o{ MESSAGES : "contains"
+    TICKETS }o--|| CUSTOMERS : "belongs_to"
+    TICKETS }o--o| USERS : "assigned_to"
+    TICKETS }o--o| TEAMS : "assigned_to"
+
+    %% Channel relationships
+    CONVERSATIONS }o--|| CHANNELS : "via"
+    CHANNELS ||--o{ OAUTH_TOKENS : "authenticated_by"
+
+    %% User/Team relationships
+    USERS }o--|| TEAMS : "member_of"
+    USERS }o--|| ORGANIZATIONS : "belongs_to"
+    TEAMS }o--|| ORGANIZATIONS : "part_of"
+
+    %% Auto-reply relationships
+    AUTO_REPLY_RULES ||--o{ AUTO_REPLY_TEMPLATES : "has"
+
+    %% Labeling relationships
+    TICKETS }o--o{ LABELS : "tagged_with"
+    TICKET_LABELS }o--|| TICKETS : "links"
+    TICKET_LABELS }o--|| LABELS : "links"
+    LABELS }o--o| LABELS : "parent_child"
+
+    %% AI relationships
+    AI_USAGE }o--|| USERS : "used_by"
+    AI_USAGE }o--o| TICKETS : "related_to"
+```
+
+### 🛡️ Row Level Security (RLS)
+
+**Beveiligingslaag:** Alle tabellen hebben RLS policies voor:
+
+- Multi-tenant data isolatie per organisatie
+- Role-based access control (admin, agent, etc.)
+- User-specific data filtering (eigen drafts, notificaties, etc.)
+
+**Performance:** Database is geoptimaliseerd met:
+
+- Indexes op veelgebruikte query velden
+- Partitioning voor grote tabellen (logs, activities)
+- Materialized views voor analytics queries
+
+## 🔌 MCP (Model Context Protocol) Integratie
+
+### 📋 Overzicht
+
+Het project gebruikt MCP voor naadloze integratie tussen AI tools (zoals Cursor), Taskmaster en Supabase. MCP biedt een gestandaardiseerde interface voor tool communicatie.
+
+### 🛠️ Beschikbare MCP Tools
+
+#### 📊 **Supabase MCP Tools**
+
+- `mcp_supabase_list_projects`: Lijst alle Supabase projecten
+- `mcp_supabase_get_project`: Project details ophalen
+- `mcp_supabase_list_tables`: Database tabellen tonen
+- `mcp_supabase_execute_sql`: SQL queries uitvoeren
+- `mcp_supabase_apply_migration`: Database migraties toepassen
+- `mcp_supabase_generate_typescript_types`: TypeScript types genereren
+- `mcp_supabase_get_logs`: Service logs ophalen voor debugging
+
+#### 🎯 **Taskmaster MCP Tools**
+
+- `initialize_project`: Project initialisatie met Taskmaster
+- `parse_prd`: Product Requirements Document parsen naar taken
+- `get_tasks`: Taken lijst ophalen met filters
+- `add_task`: Nieuwe taak toevoegen met AI
+- `expand_task`: Taak opsplitsen in subtaken
+- `set_task_status`: Taak status bijwerken
+- `analyze_project_complexity`: Project complexiteit analyseren
+- `models`: AI model configuratie beheren
+
+#### 🐙 **GitHub MCP Tools**
+
+- `mcp_github_get_file_contents`: Bestand inhoud ophalen
+- `mcp_github_search_code`: Code zoeken in repositories
+- `mcp_github_create_pull_request`: Pull request aanmaken
+- `mcp_github_get_pull_request`: PR details ophalen
+- `mcp_github_list_commits`: Commit geschiedenis
+
+### ⚙️ MCP Configuratie
+
+#### 📁 Configuratie Locatie
+
+```
+.cursor/mcp.json          # Cursor IDE MCP configuratie
+```
+
+#### 🔑 Environment Variables (in mcp.json)
+
+```json
+{
+  "env": {
+    "SUPABASE_URL": "https://nkrytssezaefinbjgwnq.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJ...",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJ...",
+    "ANTHROPIC_API_KEY": "sk-ant-...",
+    "GITHUB_TOKEN": "ghp_..."
+  }
+}
+```
+
+#### 🎯 Tool Categorieën
+
+1. **Database Management**: Supabase operaties, schema wijzigingen
+2. **Task Management**: Taskmaster workflow, project planning
+3. **Code Management**: GitHub integratie, code review
+4. **AI Integration**: Model configuratie, usage tracking
+
+### 🔄 Workflow Integratie
+
+#### 📈 **Development Workflow via MCP**
+
+1. **Project Setup**: `initialize_project` → `parse_prd`
+2. **Task Planning**: `get_tasks` → `analyze_project_complexity` → `expand_task`
+3. **Implementation**: `set_task_status` → code changes → `mcp_github_create_pull_request`
+4. **Database Changes**: `mcp_supabase_apply_migration` → `mcp_supabase_generate_typescript_types`
+5. **Monitoring**: `mcp_supabase_get_logs` → debugging
+
+#### 🎯 **Praktische Voordelen**
+
+- **Geïntegreerde Workflow**: Alles vanuit één interface (Cursor)
+- **Automatisering**: Repetitieve taken via MCP tools
+- **Consistentie**: Gestandaardiseerde tool interfaces
+- **Traceability**: Alle acties via MCP zijn traceerbaar
+- **Error Handling**: Robuuste foutafhandeling via MCP protocol
+
+### 📚 MCP Best Practices
+
+#### ✅ **Do's**
+
+- Gebruik MCP tools voor alle database operaties
+- Combineer tools voor complexe workflows
+- Valideer inputs voordat MCP tools aanroepen
+- Log MCP tool usage voor debugging
+
+#### ❌ **Don'ts**
+
+- Geen directe database calls bypassen MCP
+- Geen gevoelige data in MCP logs
+- Geen MCP tools parallel aanroepen zonder coordinatie
+- Geen MCP configuratie hardcoden in code
 
 ## 🛠️ Installatie
 
