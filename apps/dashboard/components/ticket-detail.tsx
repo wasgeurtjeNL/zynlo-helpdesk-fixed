@@ -336,6 +336,16 @@ function ConversationThread({
     <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
       <div className="px-4 lg:px-6 py-4 space-y-4">
         {messages.map((message, index) => {
+          // Debug log
+          console.log('[ConversationThread] Rendering message:', {
+            id: message.id,
+            contentExists: !!message.content,
+            contentLength: message.content?.length || 0,
+            contentPreview: message.content?.substring(0, 100),
+            contentType: message.content_type,
+            senderType: message.sender_type,
+          });
+
           const showDate =
             index === 0 ||
             formatDate(message.created_at) !== formatDate(messages[index - 1].created_at);
@@ -1413,6 +1423,26 @@ export function TicketDetail({ ticketNumber }: TicketDetailProps) {
   const { data: ticket, isLoading, error } = useTicket(ticketNumber);
   const { data: users } = useUsers();
 
+  // Debug log ticket data
+  useEffect(() => {
+    if (ticket) {
+      console.log('[TicketDetail] Ticket data from useTicket:', {
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        hasConversation: !!ticket.conversation,
+        hasMessages: !!ticket.messages,
+        messageCount: ticket.messages?.length || 0,
+        firstMessage: ticket.messages?.[0]
+          ? {
+              id: ticket.messages[0].id,
+              contentExists: !!ticket.messages[0].content,
+              contentLength: ticket.messages[0].content?.length || 0,
+            }
+          : null,
+      });
+    }
+  }, [ticket]);
+
   // Use sendMessage hook without AI learning callback
   const sendMessage = useSendMessage();
 
@@ -1772,6 +1802,20 @@ export function TicketDetail({ ticketNumber }: TicketDetailProps) {
   const sortedMessages = [...(effectiveTicket.messages || [])].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
+
+  // Debug log
+  console.log('[TicketDetail] effectiveTicket messages:', {
+    hasMessages: !!effectiveTicket.messages,
+    messageCount: effectiveTicket.messages?.length || 0,
+    firstMessage: effectiveTicket.messages?.[0]
+      ? {
+          id: effectiveTicket.messages[0].id,
+          contentExists: !!effectiveTicket.messages[0].content,
+          contentLength: effectiveTicket.messages[0].content?.length || 0,
+          contentPreview: effectiveTicket.messages[0].content?.substring(0, 100),
+        }
+      : null,
+  });
 
   // Get the actual customer info from the first customer message
   const getActualCustomerInfo = () => {

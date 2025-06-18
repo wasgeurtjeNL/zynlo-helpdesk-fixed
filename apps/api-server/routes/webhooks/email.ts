@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { simpleSpamDetector } from '../../src/services/spam/simple-spam-detector';
+import { SimpleSpamDetector } from '../../src/services/spam/simple-spam-detector';
 
 const router = express.Router();
 
