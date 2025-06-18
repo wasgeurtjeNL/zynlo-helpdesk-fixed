@@ -74,11 +74,10 @@ import { useSelectedTicketSafe } from '@/hooks/use-selected-ticket';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow, format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { showToast } from './toast';
+import { showToast } from '@/components/toast';
 import { createClient } from '@supabase/supabase-js';
 import { ActiveUsers } from './presence/active-users';
 import { TypingIndicator } from './presence/typing-indicator';
-import { sanitizeEmailContent } from '../lib/sanitize-content';
 
 // Debug import (only in development)
 import { TicketLoadingDebug } from './ticket-loading-debug';
@@ -418,7 +417,7 @@ function ConversationThread({
                     )}
                   >
                     <MessageContent
-                      content={sanitizeEmailContent(message.content)}
+                      content={message.content}
                       contentType={message.content_type || undefined}
                       messageId={message.id}
                       attachments={message.attachments || undefined}

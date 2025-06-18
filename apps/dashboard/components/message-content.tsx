@@ -1,12 +1,11 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield,
   ShieldOff,
   Eye,
   EyeOff,
-  AlertTriangle,
   Loader2,
   Paperclip,
   Download,
@@ -14,9 +13,6 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMessageAttachments } from '@zynlo/supabase';
-import { sanitizeHtmlForHttps } from '@/lib/html-optimizer';
-import DOMPurify from 'isomorphic-dompurify';
 
 interface MessageContentProps {
   content: string;
@@ -28,213 +24,6 @@ interface MessageContentProps {
   attachments?: any[];
 }
 
-interface ProcessedContent {
-  displayContent: string;
-  isHtml: boolean;
-  sanitized: boolean;
-  plainText: string;
-  error?: string;
-}
-
-/**
- * Detect if content contains HTML
- */
-function detectHtmlContent(content: string): boolean {
-  if (!content || typeof content !== 'string') return false;
-
-  const htmlPatterns = [
-    /<[a-z][\s\S]*>/i, // Basic HTML tag
-    /<\/[a-z]+>/i, // Closing tag
-    /<!DOCTYPE/i, // DOCTYPE
-    /<html[\s>]/i, // HTML tag
-    /<body[\s>]/i, // Body tag
-    /<(p|div|span|a|img|br|hr|table|td|tr)[\s/>]/i, // Common tags
-    /&(nbsp|lt|gt|amp|quot|#\d+|#x[\da-f]+);/i, // HTML entities
-  ];
-
-  return htmlPatterns.some((pattern) => pattern.test(content));
-}
-
-/**
- * Sanitize HTML content safely
- */
-function sanitizeHtml(html: string): string {
-  const config = {
-    ALLOWED_TAGS: [
-      'p',
-      'br',
-      'span',
-      'div',
-      'a',
-      'b',
-      'i',
-      'u',
-      'strong',
-      'em',
-      'small',
-      'big',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'ul',
-      'ol',
-      'li',
-      'blockquote',
-      'pre',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'img',
-      'hr',
-      'center',
-      'font',
-    ],
-    ALLOWED_ATTR: [
-      'href',
-      'src',
-      'alt',
-      'title',
-      'width',
-      'height',
-      'target',
-      'rel',
-      'style',
-      'class',
-      'id',
-      'bgcolor',
-      'color',
-      'align',
-      'valign',
-      'cellpadding',
-      'cellspacing',
-      'border',
-    ],
-    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea'],
-    FORBID_ATTR: ['onclick', 'onload', 'onerror', 'onmouseover', 'onfocus', 'onblur'],
-    ALLOW_DATA_ATTR: false,
-    FORCE_BODY: true,
-    KEEP_CONTENT: true,
-    RETURN_TRUSTED_TYPE: false,
-  };
-
-  try {
-    return DOMPurify.sanitize(html, config) as string;
-  } catch (error) {
-    console.error('[MessageContent] Sanitization failed:', error);
-    return html; // Return original if sanitization fails
-  }
-}
-
-/**
- * Convert HTML to plain text
- */
-function htmlToPlainText(html: string): string {
-  try {
-    const cleaned = DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: [],
-      KEEP_CONTENT: true,
-    });
-
-    return cleaned.replace(/\s+/g, ' ').trim();
-  } catch (error) {
-    console.error('[MessageContent] HTML to text conversion failed:', error);
-    return html;
-  }
-}
-
-/**
- * Process message content for display
- */
-function processMessageContent(
-  content: string,
-  contentType?: string,
-  safeMode: boolean = false
-): ProcessedContent {
-  try {
-    // Handle empty or invalid content
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return {
-        displayContent: 'No content available',
-        isHtml: false,
-        sanitized: false,
-        plainText: 'No content available',
-      };
-    }
-
-    const trimmedContent = content.trim();
-
-    // Determine if content should be treated as HTML
-    const isExplicitHtml = contentType?.toLowerCase().includes('text/html');
-    const hasHtmlTags = detectHtmlContent(trimmedContent);
-    const shouldRenderAsHtml = isExplicitHtml || hasHtmlTags;
-
-    console.log('[MessageContent] Processing:', {
-      contentLength: trimmedContent.length,
-      contentType,
-      isExplicitHtml,
-      hasHtmlTags,
-      shouldRenderAsHtml,
-      safeMode,
-    });
-
-    if (shouldRenderAsHtml && !safeMode) {
-      // Render as HTML
-      const sanitizedHtml = sanitizeHtml(trimmedContent);
-      const httpsSecureHtml = sanitizeHtmlForHttps(sanitizedHtml);
-      const plainText = htmlToPlainText(trimmedContent);
-
-      return {
-        displayContent: httpsSecureHtml,
-        isHtml: true,
-        sanitized: true,
-        plainText: plainText,
-      };
-    } else if (shouldRenderAsHtml && safeMode) {
-      // Safe mode: convert HTML to plain text
-      const plainText = htmlToPlainText(trimmedContent);
-
-      return {
-        displayContent: plainText,
-        isHtml: false,
-        sanitized: true,
-        plainText: plainText,
-      };
-    } else {
-      // Render as plain text with line breaks
-      const escapedContent = trimmedContent
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
-        .replace(/\n/g, '<br />');
-
-      return {
-        displayContent: escapedContent,
-        isHtml: false,
-        sanitized: false,
-        plainText: trimmedContent,
-      };
-    }
-  } catch (error) {
-    console.error('[MessageContent] Processing error:', error);
-
-    return {
-      displayContent: content || 'Content processing error',
-      isHtml: false,
-      sanitized: false,
-      plainText: content || 'Content processing error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
 export function MessageContent({
   content,
   contentType,
@@ -242,50 +31,39 @@ export function MessageContent({
   safeMode: initialSafeMode = false,
   showControls = true,
   messageId,
-  attachments: propAttachments,
+  attachments = [],
 }: MessageContentProps) {
   const [safeMode, setSafeMode] = useState(initialSafeMode);
   const [showRaw, setShowRaw] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [processedContent, setProcessedContent] = useState<ProcessedContent | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch attachments if messageId is provided
-  const { data: fetchedAttachments } = useMessageAttachments(messageId || '');
-  const attachments = propAttachments || fetchedAttachments || [];
-
-  // Process content
+  // Log for debugging
   useEffect(() => {
-    setIsProcessing(true);
+    console.log('[MessageContent] Rendering with:', {
+      contentLength: content?.length || 0,
+      contentType,
+      hasContent: !!content,
+      contentPreview: content?.substring(0, 100),
+    });
+  }, [content, contentType]);
 
-    // Process in next tick to avoid blocking UI
-    const timer = setTimeout(() => {
-      try {
-        const processed = processMessageContent(content, contentType, safeMode);
-        setProcessedContent(processed);
-        console.log('[MessageContent] Content processed:', {
-          isHtml: processed.isHtml,
-          sanitized: processed.sanitized,
-          contentLength: processed.displayContent.length,
-          originalLength: content?.length || 0,
-          hasError: !!processed.error,
-        });
-      } catch (error) {
-        console.error('[MessageContent] Processing failed:', error);
-        setProcessedContent({
-          displayContent: content || 'Processing failed',
-          isHtml: false,
-          sanitized: false,
-          plainText: content || 'Processing failed',
-          error: error instanceof Error ? error.message : 'Processing failed',
-        });
-      }
-      setIsProcessing(false);
-    }, 0);
+  // Helper functions
+  const isHtmlContent = () => {
+    if (contentType?.toLowerCase().includes('text/html')) return true;
+    if (!content) return false;
 
-    return () => clearTimeout(timer);
-  }, [content, contentType, safeMode]);
+    // Simple HTML detection
+    const htmlPatterns = [
+      /<[a-z][\s\S]*>/i,
+      /<\/[a-z]+>/i,
+      /<!DOCTYPE/i,
+      /<html[\s>]/i,
+      /<body[\s>]/i,
+    ];
 
-  // Helper functions for attachments
+    return htmlPatterns.some((pattern) => pattern.test(content));
+  };
+
   const getFileIcon = (fileType: string) => {
     if (fileType?.startsWith('image/')) return <ImageIcon className="w-4 h-4" />;
     if (fileType?.includes('pdf')) return <FileText className="w-4 h-4 text-red-600" />;
@@ -298,36 +76,21 @@ export function MessageContent({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  // Loading state
-  if (isProcessing) {
+  // Handle empty content
+  if (!content) {
     return (
-      <div className="flex items-center gap-2 p-2">
-        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-        <span className="text-sm text-gray-500">Content laden...</span>
-      </div>
+      <div className={cn('text-sm text-gray-500 italic', className)}>(Geen inhoud beschikbaar)</div>
     );
   }
 
-  // Error state
-  if (!processedContent) {
-    return (
-      <div className="p-2 bg-red-50 border border-red-200 rounded">
-        <span className="text-sm text-red-700">Failed to process message content</span>
-      </div>
-    );
-  }
-
-  const hasHtmlContent = processedContent.isHtml && !safeMode;
+  const hasHtml = isHtmlContent();
 
   return (
     <div className="space-y-2">
-      {/* Controls for HTML content */}
-      {showControls && processedContent.isHtml && (
+      {/* Controls */}
+      {showControls && hasHtml && (
         <div className="flex items-center gap-2 text-xs">
-          <span className="flex items-center gap-1 text-yellow-600">
-            <AlertTriangle className="w-3 h-3" />
-            HTML content detected
-          </span>
+          <span className="text-yellow-600">HTML content gedetecteerd</span>
           <div className="flex items-center gap-2 ml-auto">
             <button
               onClick={() => setSafeMode(!safeMode)}
@@ -337,34 +100,34 @@ export function MessageContent({
                   ? 'bg-green-100 text-green-700 hover:bg-green-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
-              title={safeMode ? 'Safe mode enabled' : 'Safe mode disabled'}
+              title={safeMode ? 'Veilige modus aan' : 'HTML modus aan'}
             >
               {safeMode ? (
                 <>
                   <Shield className="w-3 h-3" />
-                  <span>Safe mode</span>
+                  <span>Veilig</span>
                 </>
               ) : (
                 <>
                   <ShieldOff className="w-3 h-3" />
-                  <span>HTML mode</span>
+                  <span>HTML</span>
                 </>
               )}
             </button>
             <button
               onClick={() => setShowRaw(!showRaw)}
               className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-              title={showRaw ? 'Show formatted' : 'Show raw content'}
+              title={showRaw ? 'Toon geformatteerd' : 'Toon broncode'}
             >
               {showRaw ? (
                 <>
                   <Eye className="w-3 h-3" />
-                  <span>Formatted</span>
+                  <span>Geformatteerd</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="w-3 h-3" />
-                  <span>Raw</span>
+                  <span>Broncode</span>
                 </>
               )}
             </button>
@@ -372,39 +135,78 @@ export function MessageContent({
         </div>
       )}
 
-      {/* Error display */}
-      {processedContent.error && (
-        <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-          Processing error: {processedContent.error}
-        </div>
-      )}
-
-      {/* Message content */}
+      {/* Content display */}
       <div className={cn('message-content', className)}>
         {showRaw ? (
-          // Show raw content
+          // Raw content view
           <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-100 p-3 rounded overflow-x-auto">
             {content}
           </pre>
-        ) : hasHtmlContent ? (
-          // Render as HTML using dangerouslySetInnerHTML
-          <div
-            className="prose prose-sm max-w-none"
-            style={{
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-              fontSize: '14px',
-              lineHeight: '1.6',
-              color: '#333',
-            }}
-            dangerouslySetInnerHTML={{ __html: processedContent.displayContent }}
-          />
+        ) : hasHtml && !safeMode ? (
+          // HTML content - render in iframe for safety
+          <div className="html-content-wrapper">
+            <iframe
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <style>
+                    body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                      font-size: 14px;
+                      line-height: 1.6;
+                      color: #333;
+                      margin: 0;
+                      padding: 16px;
+                      word-wrap: break-word;
+                      overflow-wrap: break-word;
+                    }
+                    a { color: #0066cc; text-decoration: underline; }
+                    a:hover { color: #0052a3; }
+                    img { max-width: 100%; height: auto; }
+                    table { border-collapse: collapse; width: 100%; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f5f5f5; }
+                    blockquote { 
+                      margin: 1em 0; 
+                      padding-left: 1em; 
+                      border-left: 4px solid #ddd; 
+                      color: #666; 
+                    }
+                    pre { 
+                      background: #f5f5f5; 
+                      padding: 12px; 
+                      border-radius: 4px; 
+                      overflow-x: auto; 
+                    }
+                    code { 
+                      background: #f5f5f5; 
+                      padding: 2px 4px; 
+                      border-radius: 3px; 
+                      font-family: monospace; 
+                    }
+                  </style>
+                </head>
+                <body>${content}</body>
+                </html>
+              `}
+              className="w-full border-0 rounded"
+              style={{ minHeight: '100px', height: 'auto' }}
+              sandbox="allow-same-origin"
+              onLoad={(e) => {
+                const iframe = e.target as HTMLIFrameElement;
+                if (iframe.contentDocument?.body) {
+                  const height = iframe.contentDocument.body.scrollHeight;
+                  iframe.style.height = `${height + 32}px`;
+                }
+              }}
+            />
+          </div>
         ) : (
-          // Plain text with preserved formatting
-          <div
-            className="whitespace-pre-wrap break-words text-sm text-gray-700"
-            dangerouslySetInnerHTML={{ __html: processedContent.displayContent }}
-          />
+          // Plain text or safe mode - show as text with line breaks
+          <div className="whitespace-pre-wrap break-words text-sm text-gray-700">{content}</div>
         )}
       </div>
 
@@ -424,11 +226,11 @@ export function MessageContent({
                 {getFileIcon(attachment.file_type || '')}
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-gray-900 truncate">
-                    {attachment.file_name}
+                    {attachment.file_name || 'Naamloos bestand'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatFileSize(attachment.file_size || 0)} •{' '}
-                    {attachment.file_type || 'Unknown type'}
+                    {formatFileSize(attachment.file_size || 0)}
+                    {attachment.file_type && ` • ${attachment.file_type}`}
                   </div>
                 </div>
                 {attachment.file_url && (
