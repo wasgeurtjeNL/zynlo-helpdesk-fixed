@@ -1,47 +1,58 @@
-'use client'
+'use client';
 
-import { useEffect, useState, createContext, useContext, ReactNode, useCallback, useRef } from 'react'
-import { useRealtimeTickets, type Database } from '@zynlo/supabase'
-import { AlertCircle, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useQueryClient } from '@tanstack/react-query'
+import React, { useState, createContext, useContext, ReactNode, useCallback } from 'react';
+import { useRealtimeTickets, type Database } from '@zynlo/supabase';
+import { AlertCircle, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
-type Ticket = Database['public']['Tables']['tickets']['Row']
+type Ticket = Database['public']['Tables']['tickets']['Row'];
 
 interface Notification {
-  id: string
-  title: string
-  message: string
-  timestamp: Date
-  timeoutId?: NodeJS.Timeout
+  id: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  timeoutId?: NodeJS.Timeout;
 }
 
 interface NotificationContextType {
-  notifications: Notification[]
-  removeNotification: (id: string) => void
-  pauseNotification: (id: string) => void
-  resumeNotification: (id: string) => void
+  notifications: Notification[];
+  removeNotification: (id: string) => void;
+  pauseNotification: (id: string) => void;
+  resumeNotification: (id: string) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function useNotifications() {
-  const context = useContext(NotificationContext)
+  const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error('useNotifications must be used within NotificationProvider')
+    throw new Error('useNotifications must be used within NotificationProvider');
   }
-  return context
+  return context;
 }
 
 interface NotificationProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
-const NOTIFICATION_DURATION = 30000 // 30 seconds
+const NOTIFICATION_DURATION = 30000; // 30 seconds
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const queryClient = useQueryClient()
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isQueryClientReady, setIsQueryClientReady] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Wait for QueryClient to be properly available
+  React.useEffect(() => {
+    if (queryClient) {
+      // Small delay to ensure hydration is complete
+      const timer = setTimeout(() => {
+        setIsQueryClientReady(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [queryClient]);
 
   // Browser notification permission request disabled - using only in-app notifications
   // useEffect(() => {
@@ -53,95 +64,111 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // }, [])
 
   const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => {
-      const notification = prev.find(n => n.id === id)
+    setNotifications((prev) => {
+      const notification = prev.find((n) => n.id === id);
       if (notification?.timeoutId) {
-        clearTimeout(notification.timeoutId)
+        clearTimeout(notification.timeoutId);
       }
-      return prev.filter(n => n.id !== id)
-    })
-  }, [])
+      return prev.filter((n) => n.id !== id);
+    });
+  }, []);
 
   const pauseNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => {
-      if (n.id === id && n.timeoutId) {
-        clearTimeout(n.timeoutId)
-        return { ...n, timeoutId: undefined }
-      }
-      return n
-    }))
-  }, [])
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id === id && n.timeoutId) {
+          clearTimeout(n.timeoutId);
+          return { ...n, timeoutId: undefined };
+        }
+        return n;
+      })
+    );
+  }, []);
 
-  const resumeNotification = useCallback((id: string) => {
-    const timeoutId = setTimeout(() => {
-      removeNotification(id)
-    }, 5000) // 5 seconds after mouse leave
+  const resumeNotification = useCallback(
+    (id: string) => {
+      const timeoutId = setTimeout(() => {
+        removeNotification(id);
+      }, 5000); // 5 seconds after mouse leave
 
-    setNotifications(prev => prev.map(n => {
-      if (n.id === id) {
-        return { ...n, timeoutId }
-      }
-      return n
-    }))
-  }, [removeNotification])
+      setNotifications((prev) =>
+        prev.map((n) => {
+          if (n.id === id) {
+            return { ...n, timeoutId };
+          }
+          return n;
+        })
+      );
+    },
+    [removeNotification]
+  );
 
-  const handleNewTicket = useCallback((ticket: Ticket) => {
-    console.log('New ticket received:', ticket)
-    
-    // Auto-remove timeout
-    const timeoutId = setTimeout(() => {
-      removeNotification(ticket.id)
-    }, NOTIFICATION_DURATION)
-    
-    const notification: Notification = {
-      id: ticket.id,
-      title: `Nieuw ticket #${ticket.number}`,
-      message: ticket.subject || 'Geen onderwerp',
-      timestamp: new Date(),
-      timeoutId
-    }
+  const handleNewTicket = useCallback(
+    (ticket: Ticket) => {
+      console.log('New ticket received:', ticket);
 
-    // Add to in-app notifications
-    setNotifications(prev => [notification, ...prev])
+      // Auto-remove timeout
+      const timeoutId = setTimeout(() => {
+        removeNotification(ticket.id);
+      }, NOTIFICATION_DURATION);
 
-    // Invalidate queries to refresh ticket lists
-    queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    queryClient.invalidateQueries({ queryKey: ['inbox-counts'] })
+      const notification: Notification = {
+        id: ticket.id,
+        title: `Nieuw ticket #${ticket.number}`,
+        message: ticket.subject || 'Geen onderwerp',
+        timestamp: new Date(),
+        timeoutId,
+      };
 
-    // Browser notifications disabled - using only in-app toast notifications
-    // if ('Notification' in window && Notification.permission === 'granted') {
-    //   try {
-    //     const browserNotification = new Notification(notification.title, {
-    //       body: notification.message,
-    //       icon: '/favicon.ico',
-    //       tag: ticket.id,
-    //       requireInteraction: true // Keeps notification until user interacts
-    //     })
+      // Add to in-app notifications
+      setNotifications((prev) => [notification, ...prev]);
 
-    //     // Add click handler to focus the window
-    //     browserNotification.onclick = () => {
-    //       window.focus()
-    //       browserNotification.close()
-    //     }
-    //   } catch (error) {
-    //     console.error('Error showing browser notification:', error)
-    //   }
-    // }
-  }, [queryClient, removeNotification])
+      // Invalidate queries to refresh ticket lists
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
 
-  // Subscribe to new tickets
-  useRealtimeTickets(handleNewTicket)
+      // Browser notifications disabled - using only in-app toast notifications
+      // if ('Notification' in window && Notification.permission === 'granted') {
+      //   try {
+      //     const browserNotification = new Notification(notification.title, {
+      //       body: notification.message,
+      //       icon: '/favicon.ico',
+      //       tag: ticket.id,
+      //       requireInteraction: true // Keeps notification until user interacts
+      //     })
+
+      //     // Add click handler to focus the window
+      //     browserNotification.onclick = () => {
+      //       window.focus()
+      //       browserNotification.close()
+      //     }
+      //   } catch (error) {
+      //     console.error('Error showing browser notification:', error)
+      //   }
+      // }
+    },
+    [queryClient, removeNotification]
+  );
+
+  // Subscribe to new tickets (only when QueryClient is ready)
+  useRealtimeTickets({
+    enabled: isQueryClientReady,
+    onTicketCreated: handleNewTicket,
+  });
 
   return (
-    <NotificationContext.Provider value={{ notifications, removeNotification, pauseNotification, resumeNotification }}>
+    <NotificationContext.Provider
+      value={{ notifications, removeNotification, pauseNotification, resumeNotification }}
+    >
       {children}
       <NotificationToasts />
     </NotificationContext.Provider>
-  )
+  );
 }
 
 function NotificationToasts() {
-  const { notifications, removeNotification, pauseNotification, resumeNotification } = useNotifications()
+  const { notifications, removeNotification, pauseNotification, resumeNotification } =
+    useNotifications();
 
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
@@ -160,15 +187,9 @@ function NotificationToasts() {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-gray-900">
-                  {notification.title}
-                </h4>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {notification.message}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Nu
-                </p>
+                <h4 className="text-sm font-semibold text-gray-900">{notification.title}</h4>
+                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                <p className="text-xs text-gray-400 mt-1">Nu</p>
               </div>
               <button
                 onClick={() => removeNotification(notification.id)}
@@ -182,5 +203,5 @@ function NotificationToasts() {
         </div>
       ))}
     </div>
-  )
-} 
+  );
+}

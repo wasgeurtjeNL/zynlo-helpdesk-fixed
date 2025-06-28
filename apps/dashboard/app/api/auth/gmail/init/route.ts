@@ -1,63 +1,89 @@
-// New API route: Initiate Gmail OAuth flow
-// Path: /api/auth/gmail/init (GET)
-// Returns JSON { url } with the Google consent URL and sets a secure httpOnly cookie for state validation.
+/**
+ * Gmail OAuth Initialization Route
+ * Uses official googleapis library via GmailOAuthService
+ */
 
-import { NextResponse, NextRequest } from 'next/server'
-import { google } from 'googleapis'
-import { randomUUID } from 'crypto'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { createGmailOAuthService } from '@/lib/gmail-oauth';
 
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
-export async function GET(req: NextRequest) {
-  const clientId = process.env.GMAIL_CLIENT_ID
-  const clientSecret = process.env.GMAIL_CLIENT_SECRET
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${req.nextUrl.port || '3000'}`
+export async function GET() {
+  try {
+    console.log('🚀 Gmail OAuth Init - Starting...');
 
-  console.log('Gmail OAuth config check:', {
-    hasClientId: !!clientId,
-    hasClientSecret: !!clientSecret,
-    appUrl: appUrl
-  })
+    // Create Gmail OAuth service with official googleapis library
+    const gmailOAuth = createGmailOAuthService();
 
-  if (!clientId || !clientSecret) {
+    // Get current user from Supabase
+    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error('❌ User authentication failed:', userError);
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+    }
+
+    // Generate secure state for OAuth flow
+    const rawState = {
+      id: randomUUID(),
+      uid: user.id,
+      timestamp: Date.now(),
+    };
+    const state = Buffer.from(JSON.stringify(rawState)).toString('base64url');
+
+    // Generate authorization URL using official googleapis
+    const authUrl = gmailOAuth.generateAuthUrl(state);
+
+    console.log('✅ Gmail OAuth URL generated successfully');
+    console.log(
+      '🔗 Redirect URI configured:',
+      process.env.NEXT_PUBLIC_APP_URL + '/api/auth/gmail/callback'
+    );
+
+    // Set secure state cookie
+    const response = NextResponse.json({
+      url: authUrl,
+      state: rawState.id, // For debugging
+    });
+
+    response.cookies.set('gmail_oauth_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 600, // 10 minutes
+      sameSite: 'lax',
+    });
+
+    return response;
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('❌ Gmail OAuth Init Error:', err);
+
+    // Check if it's a configuration error
+    if (err.message.includes('Gmail OAuth credentials not configured')) {
+      return NextResponse.json(
+        {
+          error: 'Gmail OAuth not configured',
+          message: 'Missing GMAIL_CLIENT_ID or GMAIL_CLIENT_SECRET in environment variables',
+          setup_required: true,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Gmail OAuth is not configured on the server. Missing GMAIL_CLIENT_ID or GMAIL_CLIENT_SECRET in environment variables.' },
+      {
+        error: 'Failed to initialize Gmail OAuth',
+        message: err.message,
+      },
       { status: 500 }
-    )
+    );
   }
-
-  const redirectUri = `${appUrl}/api/auth/gmail/callback`
-  const oAuth2Client = new google.auth.OAuth2({ clientId, clientSecret, redirectUri })
-
-  // Include userId in state (base64) so callback can associate channel with user
-  const supabase = createRouteHandlerClient({ cookies })
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const rawState = {
-    id: randomUUID(),
-    uid: user?.id || null,
-  }
-  const state = Buffer.from(JSON.stringify(rawState)).toString('base64url')
-
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: 'offline',
-    prompt: 'consent',
-    scope: ['https://mail.google.com/'],
-    state,
-  })
-
-  const res = NextResponse.json({ url: authUrl })
-  // Store state in secure cookie for 10 minutes
-  res.cookies.set('gmail_oauth_state', state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 600,
-    sameSite: 'lax',
-  })
-  return res
-} 
+}
